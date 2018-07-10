@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.Array;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
 import com.sodirea.flickeringinthedark.sprites.Ball;
+import com.sodirea.flickeringinthedark.sprites.Boulder;
 import com.sodirea.flickeringinthedark.sprites.Platform;
 
 public class PlayState extends State {
@@ -26,6 +27,7 @@ public class PlayState extends State {
     private Platform platform5;
     private Platform platform6;
     private Array<Platform> platformArray;
+    private Boulder boulder1;
     private float totalTimePassed;
     private boolean isOverlapped;
 
@@ -51,6 +53,7 @@ public class PlayState extends State {
         platformArray.add(platform4);
         platformArray.add(platform5);
         platformArray.add(platform6);
+        boulder1 = new Boulder(platform2.getPosition().x, platform2.getPosition().y + platform2.getTexture().getHeight());
         totalTimePassed = 0;
     }
 
@@ -72,7 +75,9 @@ public class PlayState extends State {
     public void update(float dt) {
         handleInput();
         ball.update(dt);
-        for (Platform platform : platformArray) {
+        boulder1.update(dt, platformArray);
+        for (int i = 0; i < platformArray.size; i++) {
+            Platform platform = platformArray.get(i);
             platform.update(dt);
             if (Intersector.overlaps(ball.getBounds(), platform.getBounds1()) || Intersector.overlaps(ball.getBounds(), platform.getBounds2())) {
                 if (ball.getPosition().y + 5 >= platform.getPosition().y + platform.getTexture().getHeight()) { // bottom of ball y position is higher than top of platform y position
@@ -93,16 +98,12 @@ public class PlayState extends State {
                             ball.resetVelocityY();
                         }
 
-                        if (totalTimePassed < 50) {
-                            totalTimePassed += dt;
-                        }
-                        cam.position.y += 6 * Ball.SCALING_FACTOR * (Math.pow(1.03, totalTimePassed) + 3);
-                        cam.update();
                         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
                             gsm.set(new PlayState(gsm));
                         }
                         handleInput();
                         ball.update(dt);
+                        boulder1.update(dt, platformArray);
                         platform.update(dt);
                     }
                     isOverlapped = false;
@@ -137,6 +138,7 @@ public class PlayState extends State {
         for (Platform platform : platformArray) {
             platform.render(sb);
         }
+        boulder1.render(sb);
         sb.end();
     }
 
@@ -154,5 +156,6 @@ public class PlayState extends State {
         platform4.dispose();
         platform5.dispose();
         platform6.dispose();
+        boulder1.dispose();
     }
 }

@@ -12,7 +12,7 @@ import java.util.Random;
 public class Platform {
 
     public static final int MIN_HOLE_WIDTH = 120;
-    public static final int MAX_ADDITIONAL_HOLE_WIDTH = 120;
+    public static final int MAX_ADDITIONAL_HOLE_WIDTH = 60;
     private int holeWidth;
     private Random xGenerator;
     private Texture platform;
