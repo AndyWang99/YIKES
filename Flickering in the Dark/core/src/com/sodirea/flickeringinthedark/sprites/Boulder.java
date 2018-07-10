@@ -51,7 +51,7 @@ public class Boulder {
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 
-    public void isOverlapWithAnyPlatform(Array<Platform> platformArray) {
+    public void onOverlapWithAnyPlatform(Array<Platform> platformArray) {
         boolean setToFalse = true;
         for (Platform platform : platformArray) {
             if (Intersector.overlaps(bounds, platform.getBounds1()) || Intersector.overlaps(bounds, platform.getBounds2())) {
@@ -67,7 +67,7 @@ public class Boulder {
     }
 
     public void update(float dt, Array<Platform> platformArray) {
-        isOverlapWithAnyPlatform(platformArray);
+        onOverlapWithAnyPlatform(platformArray);
         position.add(SCALING_FACTOR * velocity.x, SCALING_FACTOR * velocity.y);
         if (!isOnPlatform) { // add gravity to velocity if off the ground
             velocity.y += GRAVITY;

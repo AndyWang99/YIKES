@@ -53,7 +53,7 @@ public class PlayState extends State {
         platformArray.add(platform4);
         platformArray.add(platform5);
         platformArray.add(platform6);
-        boulder1 = new Boulder(platform2.getPosition().x, platform2.getPosition().y + platform2.getTexture().getHeight());
+        boulder1 = new Boulder(platform2.getPosition().x, platform6.getPosition().y + platform6.getTexture().getHeight());
         totalTimePassed = 0;
     }
 
@@ -74,7 +74,7 @@ public class PlayState extends State {
     @Override
     public void update(float dt) {
         handleInput();
-        ball.update(dt);
+        ball.update(dt, boulder1);
         boulder1.update(dt, platformArray);
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
@@ -102,7 +102,7 @@ public class PlayState extends State {
                             gsm.set(new PlayState(gsm));
                         }
                         handleInput();
-                        ball.update(dt);
+                        ball.update(dt, boulder1);
                         boulder1.update(dt, platformArray);
                         platform.update(dt);
                     }

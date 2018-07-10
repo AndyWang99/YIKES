@@ -73,7 +73,13 @@ public class Ball {
         velocity.x = y;
     }
 
-    public void update(float dt) {
+    public void onOverlapWithBoulder(Boulder boulder) {
+        if (bounds.overlaps(boulder.getBounds())) {
+            velocity.set(0, 0);
+        }
+    }
+
+    public void update(float dt, Boulder boulder) {
         position.add(SCALING_FACTOR * velocity.x, SCALING_FACTOR * velocity.y);
         if (position.y > minPos) { // add gravity to velocity if off the ground
             velocity.y += GRAVITY;
