@@ -7,13 +7,13 @@ import com.badlogic.gdx.math.Vector2;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
 import com.sodirea.flickeringinthedark.states.PlayState;
 
-import org.w3c.dom.css.Rect;
-
 import java.util.Random;
 
 public class Platform {
 
-    public static final int HOLE_WIDTH = 120;
+    public static final int MIN_HOLE_WIDTH = 120;
+    public static final int MAX_ADDITIONAL_HOLE_WIDTH = 120;
+    private int holeWidth;
     private Random xGenerator;
     private Texture platform;
     private Vector2 position;
@@ -23,11 +23,16 @@ public class Platform {
 
     public Platform(float y) {
         xGenerator = new Random();
+        holeWidth = MIN_HOLE_WIDTH + xGenerator.nextInt(MAX_ADDITIONAL_HOLE_WIDTH);
         platform = new Texture("platform.png");
-        position = new Vector2(xGenerator.nextInt(FlickeringInTheDark.WIDTH - HOLE_WIDTH), y);
+        position = new Vector2(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), y);
         bounds1 = new Rectangle(position.x - platform.getWidth(), position.y, platform.getWidth(), platform.getHeight());
-        bounds2 = new Rectangle(position.x + HOLE_WIDTH, position.y, platform.getWidth(), platform.getHeight());
+        bounds2 = new Rectangle(position.x + holeWidth, position.y, platform.getWidth(), platform.getHeight());
         isCleared = false;
+    }
+
+    public int getHoleWidth() {
+        return holeWidth;
     }
 
     public Rectangle getBounds1() {
@@ -47,9 +52,9 @@ public class Platform {
 
     public void reposition() {
         isCleared = false;
-        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - HOLE_WIDTH), position.y + PlayState.PLATFORM_INTERVALS * PlayState.NUM_PLATFORMS);
+        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), position.y + PlayState.PLATFORM_INTERVALS * PlayState.NUM_PLATFORMS);
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
-        bounds2.setPosition(position.x + HOLE_WIDTH, position.y);
+        bounds2.setPosition(position.x + holeWidth, position.y);
     }
 
     public void cleared() {
@@ -58,10 +63,10 @@ public class Platform {
 
     public void update(float dt) {
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
-        bounds2.setPosition(position.x + HOLE_WIDTH, position.y);
+        bounds2.setPosition(position.x + holeWidth, position.y);
         if (isCleared) {
-            if (position.x < FlickeringInTheDark.WIDTH / 2 && position.x != -HOLE_WIDTH) { // hole is closer to left, so move right platform over to left side
-                position.x -= (position.x + HOLE_WIDTH) / 10;
+            if (position.x < FlickeringInTheDark.WIDTH / 2 && position.x != -holeWidth) { // hole is closer to left, so move right platform over to left side
+                position.x -= (position.x + holeWidth) / 10;
             } else if (position.x >= FlickeringInTheDark.WIDTH / 2 && position.x != FlickeringInTheDark.WIDTH) {
                 position.x += (FlickeringInTheDark.WIDTH - position.x) / 10;
             }
@@ -70,7 +75,7 @@ public class Platform {
 
     public void render(SpriteBatch sb) {
         sb.draw(platform, position.x - platform.getWidth(), position.y);
-        sb.draw(platform, position.x + HOLE_WIDTH, position.y);
+        sb.draw(platform, position.x + holeWidth, position.y);
     }
 
     public void dispose() {

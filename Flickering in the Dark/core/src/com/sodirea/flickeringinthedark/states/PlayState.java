@@ -79,23 +79,24 @@ public class PlayState extends State {
                     ball.setNewMinPosition(platform.getPosition().y + platform.getTexture().getHeight());
                     platform.cleared();
                 } else if (ball.getPosition().y + ball.getTexture().getHeight() >= platform.getPosition().y) { // top of ball comes in contact with bottom of platform
-                    ball.resetVelocityY();
                     isOverlapped = true;
                     while (Intersector.overlaps(ball.getBounds(), platform.getBounds1()) || Intersector.overlaps(ball.getBounds(), platform.getBounds2())) {
-                        // this is to simply wait until it is not overlapped with the current platform
+                        // this is to simply wait until it is not overlapped with the current platform (which will cause the while loop to exit and isOverlapped = false)
                         if (ball.getPosition().y + ball.getTexture().getHeight() > platform.getPosition().y + 15 && ball.getPosition().y + ball.getTexture().getHeight() < platform.getPosition().y + platform.getTexture().getHeight()) { // the ball is in the hole between two platforms, so don't let the ball "noclip" through the platforms
                             ball.moveLeft(0);
-                            if (ball.getPosition().x <= platform.getPosition().x) {
+                            if (ball.getPosition().x <= platform.getPosition().x) { // ball is inside left platform
                                 ball.setPosition(platform.getPosition().x, ball.getPosition().y);
-                            } else if (ball.getPosition().x + ball.getTexture().getWidth() >= platform.getPosition().x + Platform.HOLE_WIDTH) {
-                                ball.setPosition(platform.getPosition().x + Platform.HOLE_WIDTH - ball.getTexture().getWidth(), ball.getPosition().y);
+                            } else if (ball.getPosition().x + ball.getTexture().getWidth() >= platform.getPosition().x + platform.getHoleWidth()) { // ball is inside right platform
+                                ball.setPosition(platform.getPosition().x + platform.getHoleWidth() - ball.getTexture().getWidth(), ball.getPosition().y);
                             }
+                        } else if (ball.getPosition().y + ball.getTexture().getHeight() - 15 < platform.getPosition().y){
+                            ball.resetVelocityY();
                         }
 
-                        if (totalTimePassed < 60) {
+                        if (totalTimePassed < 50) {
                             totalTimePassed += dt;
                         }
-                        cam.position.y += 4 * Ball.SCALING_FACTOR * Math.pow(1.02, totalTimePassed);
+                        cam.position.y += 6 * Ball.SCALING_FACTOR * (Math.pow(1.03, totalTimePassed) + 3);
                         cam.update();
                         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
                             gsm.set(new PlayState(gsm));
