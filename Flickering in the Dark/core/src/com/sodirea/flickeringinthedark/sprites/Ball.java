@@ -3,9 +3,11 @@ package com.sodirea.flickeringinthedark.sprites;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
+import com.sodirea.flickeringinthedark.states.PlayState;
 
 public class Ball {
 
@@ -16,7 +18,7 @@ public class Ball {
     private Texture ball;
     private Vector2 position;
     private Vector2 velocity;
-    private Rectangle bounds;
+    private Circle bounds;
     private float minPos;
 
     public Ball(float x, float y) {
@@ -25,7 +27,7 @@ public class Ball {
         ball = new Texture("ball.png");
         position = new Vector2(x, y);
         velocity = new Vector2(0, 0);
-        bounds = new Rectangle(position.x, position.y, ball.getWidth(), ball.getHeight());
+        bounds = new Circle(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2, ball.getWidth() / 2);
         minPos = ground.getHeight();
     }
 
@@ -37,8 +39,8 @@ public class Ball {
         return ball;
     }
 
-    public boolean boundsOverlapped(Rectangle platformBounds) {
-        return bounds.overlaps(platformBounds);
+    public Circle getBounds() {
+        return bounds;
     }
 
     public void setNewMinPosition(float newMinPos) {
@@ -46,11 +48,15 @@ public class Ball {
     }
 
     public void resetVelocityY() {
-        velocity.y = 0;
+        velocity.y = GRAVITY - 10;
     }
 
     public void setPosition(float x, float y) {
         position.set(x, y);
+    }
+
+    public float getMinPos() {
+        return minPos;
     }
 
     public void jump() {
@@ -81,7 +87,7 @@ public class Ball {
         if (position.x + ball.getWidth() >= FlickeringInTheDark.WIDTH - wall.getWidth()) {
             position.x = FlickeringInTheDark.WIDTH - wall.getWidth() - ball.getWidth();
         }
-        bounds.setPosition(position.x, position.y);
+        bounds.setPosition(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2);
     }
 
     public void render(SpriteBatch sb) {

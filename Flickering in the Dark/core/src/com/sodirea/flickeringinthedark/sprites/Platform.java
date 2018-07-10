@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
+import com.sodirea.flickeringinthedark.states.PlayState;
 
 import org.w3c.dom.css.Rect;
 
@@ -12,7 +13,7 @@ import java.util.Random;
 
 public class Platform {
 
-    private static final int HOLE_WIDTH = 120;
+    public static final int HOLE_WIDTH = 120;
     private Random xGenerator;
     private Texture platform;
     private Vector2 position;
@@ -45,7 +46,10 @@ public class Platform {
     }
 
     public void reposition() {
-
+        isCleared = false;
+        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - HOLE_WIDTH), position.y + PlayState.PLATFORM_INTERVALS * PlayState.NUM_PLATFORMS);
+        bounds1.setPosition(position.x - platform.getWidth(), position.y);
+        bounds2.setPosition(position.x + HOLE_WIDTH, position.y);
     }
 
     public void cleared() {
