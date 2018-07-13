@@ -8,7 +8,6 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2D;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -28,6 +27,8 @@ public class PlayState extends State {
     public static final int PLATFORM_INTERVALS = 190;
     public static final int NUM_PLATFORMS = 6;
     public static final float PIXELS_TO_METERS = 0.01f;
+    public static final int GRAVITY = -500;
+    public static final float TIME_STEP = 1 / 300f;
     private Texture bg;
     private Texture ground;
     private Texture wall;
@@ -45,11 +46,6 @@ public class PlayState extends State {
     private float totalTimePassed;
     private World world;
     private Box2DDebugRenderer debugRenderer;
-    private BodyDef ballBodyDef;
-    private Body ballBody;
-    private CircleShape ballCircle;
-    private FixtureDef ballFixtureDef;
-    private Fixture ballFixture;
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
@@ -67,33 +63,53 @@ public class PlayState extends State {
     public PlayState(GameStateManager gsm) {
         super(gsm);
         Box2D.init();
-        world = new World(new Vector2(0, -500), true);
+        world = new World(new Vector2(0, GRAVITY), true);
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
-                if (contact.getFixtureA().getBody().getUserData() != null
-                        && contact.getFixtureB().getBody().getUserData() != null
-                        && (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball)) {
-                    Platform platform;
+                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) { // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                    ball.addNumberOfFootContacts(); // add to the total number of contact points
+                    Platform platform = null;
                     if (contact.getFixtureA().getBody().getUserData() instanceof Platform) {
                         platform = (Platform) contact.getFixtureA().getBody().getUserData();
-                    } else {
+                    } else if (contact.getFixtureB().getBody().getUserData() instanceof Platform) {
                         platform = (Platform) contact.getFixtureB().getBody().getUserData();
                     }
-                    if (ball.getPosition().y > platform.getPosition().y +platform.getTexture().getHeight()) {
+                    if (platform != null && ball.getPosition().y > platform.getPosition().y + platform.getTexture().getHeight()) {
                         platform.cleared();
-                        System.out.println("CLEARED");
+                    }
+                }
+
+                if (contact.getFixtureA().getBody() == wallBody
+                        || contact.getFixtureB().getBody() == wallBody
+                        || contact.getFixtureA().getBody() == wallBody2
+                        || contact.getFixtureB().getBody() == wallBody2) {
+                    Boulder boulder = null;
+                    if (contact.getFixtureA().getBody().getUserData() instanceof Boulder) {
+                        boulder = (Boulder) contact.getFixtureA().getBody().getUserData();
+                    } else if (contact.getFixtureB().getBody().getUserData() instanceof Boulder) {
+                        boulder = (Boulder) contact.getFixtureA().getBody().getUserData();
+                    }
+                    if (boulder != null) {
+                        boulder.setBodyLinearVelocity(-boulder.getBodyLinearVelocity().x, boulder.getBodyLinearVelocity().y);
                     }
                 }
             }
-            @Override
-            public void endContact(Contact contact) { }
 
             @Override
-            public void preSolve(Contact contact, Manifold oldManifold) { }
+            public void endContact(Contact contact) {
+                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) {
+                    ball.lessNumberOfFootContacts();
+                }
+            }
 
             @Override
-            public void postSolve(Contact contact, ContactImpulse impulse) { }
+            public void preSolve(Contact contact, Manifold oldManifold) {
+            }
+
+            @Override
+            public void postSolve(Contact contact, ContactImpulse impulse) {
+            }
         });
 
         debugRenderer = new Box2DDebugRenderer();
@@ -102,7 +118,7 @@ public class PlayState extends State {
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
-        ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight());
+        ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
         platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
         platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
@@ -116,31 +132,18 @@ public class PlayState extends State {
         platformArray.add(platform4);
         platformArray.add(platform5);
         platformArray.add(platform6);
-        boulder1 = new Boulder(platform2.getPosition().x, platform6.getPosition().y + platform6.getTexture().getHeight());
+        boulder1 = new Boulder(platform2.getPosition().x, platform2.getPosition().y + platform2.getTexture().getHeight(), world);
         totalTimePassed = 0;
 
-        ballBodyDef = new BodyDef();
-        ballBodyDef.type = BodyDef.BodyType.DynamicBody;
-        ballBodyDef.position.set((ball.getPosition().x+ball.getTexture().getWidth()/2) * PIXELS_TO_METERS, (ball.getPosition().y+ball.getTexture().getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics ball coodinates
-        ballBody = world.createBody(ballBodyDef);
-        ballCircle = new CircleShape();
-        ballCircle.setRadius((ball.getTexture().getWidth()/2) * PIXELS_TO_METERS);
-        ballFixtureDef = new FixtureDef();
-        ballFixtureDef.shape = ballCircle;
-        ballFixtureDef.density = 0.5f;
-        ballFixtureDef.friction = 0.4f;
-        ballFixture = ballBody.createFixture(ballFixtureDef);
-        ballBody.setUserData(ball);
-
         groundBodyDef = new BodyDef();
-        groundBodyDef.position.set(ground.getWidth()/2*PIXELS_TO_METERS, ground.getHeight()/2*PIXELS_TO_METERS);
+        groundBodyDef.position.set(ground.getWidth() / 2 * PIXELS_TO_METERS, ground.getHeight() / 2 * PIXELS_TO_METERS);
         groundBody = world.createBody(groundBodyDef);
         groundBox = new PolygonShape();
         groundBox.setAsBox(ground.getWidth() / 2 * PIXELS_TO_METERS, ground.getHeight() / 2 * PIXELS_TO_METERS);
         groundBody.createFixture(groundBox, 0.0f);
 
         wallBodyDef = new BodyDef();
-        wallBodyDef.position.set(wall.getWidth()/2*PIXELS_TO_METERS, wall.getHeight()/2*PIXELS_TO_METERS);
+        wallBodyDef.position.set(wall.getWidth() / 2 * PIXELS_TO_METERS, wall.getHeight() / 2 * PIXELS_TO_METERS);
         wallBody = world.createBody(wallBodyDef);
         wallBox = new PolygonShape();
         wallBox.setAsBox(wall.getWidth() / 2 * PIXELS_TO_METERS, wall.getHeight() / 2 * PIXELS_TO_METERS);
@@ -151,7 +154,7 @@ public class PlayState extends State {
         wallFixture = wallBody.createFixture(wallFixtureDef);
 
         wallBodyDef2 = new BodyDef();
-        wallBodyDef2.position.set((cam.position.x + cam.viewportWidth / 2 - wall.getWidth() + wall.getWidth()/2) * PIXELS_TO_METERS, wall.getHeight()/2*PIXELS_TO_METERS);
+        wallBodyDef2.position.set((cam.position.x + cam.viewportWidth / 2 - wall.getWidth() + wall.getWidth() / 2) * PIXELS_TO_METERS, wall.getHeight() / 2 * PIXELS_TO_METERS);
         wallBody2 = world.createBody(wallBodyDef2);
         wallBox2 = new PolygonShape();
         wallBox2.setAsBox(wall.getWidth() / 2 * PIXELS_TO_METERS, wall.getHeight() / 2 * PIXELS_TO_METERS);
@@ -166,26 +169,25 @@ public class PlayState extends State {
 
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched() && ballBody.getLinearVelocity().y == 0) {
-            ballBody.setLinearVelocity(ballBody.getLinearVelocity().x, 50f);
+        if (Gdx.input.justTouched() && ball.getNumberOfFootContacts() > 0) {
+            ball.setBodyLinearVelocity(ball.getBodyLinearVelocity().x, 50f);
         }
         float accelX = Gdx.input.getAccelerometerX();
         if (accelX > 0) {
-            ballBody.setLinearVelocity(-20f * accelX, ballBody.getLinearVelocity().y);
+            ball.setBodyLinearVelocity(-20f * accelX, ball.getBodyLinearVelocity().y);
         }
         if (accelX < 0) {
-            ballBody.setLinearVelocity(-20f * accelX, ballBody.getLinearVelocity().y);
+            ball.setBodyLinearVelocity(-20f * accelX, ball.getBodyLinearVelocity().y);
         }
     }
 
     @Override
     public void update(float dt) {
         handleInput();
-        ball.setPosition(ballBody.getPosition().x/PIXELS_TO_METERS-ball.getTexture().getWidth()/2, ballBody.getPosition().y/PIXELS_TO_METERS-ball.getTexture().getHeight()/2); // convert physics ball coordinates back to render/pixel coordinates
-        wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y*PIXELS_TO_METERS), wallBody.getAngle());
-        wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y*PIXELS_TO_METERS), wallBody2.getAngle());
+        wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
+        wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
         ball.update(dt);
-        boulder1.update(dt, platformArray);
+        boulder1.update(dt);
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
             platform.update(dt, world);
@@ -196,12 +198,12 @@ public class PlayState extends State {
         if (totalTimePassed < 60) {
             totalTimePassed += dt;
         }
-        cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
+        //cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
         cam.update();
         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
             gsm.set(new PlayState(gsm));
         }
-        world.step(1/300f, 6, 2);
+        world.step(TIME_STEP, 6, 2);
     }
 
     @Override
@@ -236,7 +238,6 @@ public class PlayState extends State {
         platform5.dispose();
         platform6.dispose();
         boulder1.dispose();
-        ballCircle.dispose();
         groundBox.dispose();
         wallBox.dispose();
         wallBox2.dispose();

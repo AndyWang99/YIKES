@@ -5,6 +5,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
 
@@ -12,6 +18,7 @@ import java.util.Random;
 
 import static com.sodirea.flickeringinthedark.sprites.Ball.GRAVITY;
 import static com.sodirea.flickeringinthedark.sprites.Ball.SCALING_FACTOR;
+import static com.sodirea.flickeringinthedark.states.PlayState.PIXELS_TO_METERS;
 
 public class Boulder {
 
@@ -20,17 +27,31 @@ public class Boulder {
     private Texture wall;
     private Texture boulder;
     private Vector2 position;
-    private Vector2 velocity;
     private Circle bounds;
-    private boolean isOnPlatform;
-    private Platform currentPlatform; // pointer to the current platform the boulder is sitting on
+    private BodyDef boulderBodyDef;
+    private Body boulderBody;
+    private CircleShape boulderCircle;
+    private FixtureDef boulderFixtureDef;
+    private Fixture boulderFixture;
 
-    public Boulder(float x, float y) {
+    public Boulder(float x, float y, World world) {
         wall = new Texture("wall.png");
         boulder = new Texture("boulder.png");
         position = new Vector2(x, y);
-        velocity = new Vector2(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
         bounds = new Circle(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2, boulder.getWidth() / 2);
+        boulderBodyDef = new BodyDef();
+        boulderBodyDef.type = BodyDef.BodyType.DynamicBody;
+        boulderBodyDef.position.set((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics boulder coodinates
+        boulderBody = world.createBody(boulderBodyDef);
+        boulderCircle = new CircleShape();
+        boulderCircle.setRadius((boulder.getWidth()/2) * PIXELS_TO_METERS);
+        boulderFixtureDef = new FixtureDef();
+        boulderFixtureDef.shape = boulderCircle;
+        boulderFixtureDef.density = 9999f; // giving it a very high density makes the boulder act like a kinematic body (in that the player's ball adds minimal momentum to the boulder on collisions) that is only affected by gravity
+        boulderFixtureDef.friction = 0.0f;
+        boulderFixture = boulderBody.createFixture(boulderFixtureDef);
+        boulderBody.setUserData(this);
+        boulderBody.setLinearVelocity(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
     }
 
     public Vector2 getPosition() {
@@ -47,42 +68,20 @@ public class Boulder {
 
     public void reposition(float x, float y) {
         position.set(x, y);
-        velocity.set(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
+        //velocity.set(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 
-    public void onOverlapWithAnyPlatform(Array<Platform> platformArray) {
-        boolean setToFalse = true;
-        for (Platform platform : platformArray) {
-            if (Intersector.overlaps(bounds, platform.getBounds1()) || Intersector.overlaps(bounds, platform.getBounds2())) {
-                isOnPlatform = true;
-                setToFalse = false;
-                currentPlatform = platform;
-            }
-        }
-        if (setToFalse) {
-            isOnPlatform = false;
-            currentPlatform = null;
-        }
+    public Vector2 getBodyLinearVelocity() {
+        return boulderBody.getLinearVelocity();
     }
 
-    public void update(float dt, Array<Platform> platformArray) {
-        onOverlapWithAnyPlatform(platformArray);
-        position.add(SCALING_FACTOR * velocity.x, SCALING_FACTOR * velocity.y);
-        if (!isOnPlatform) { // add gravity to velocity if off the ground
-            velocity.y += GRAVITY;
-        } else {
-            velocity.y = 0;
-            position.y = currentPlatform.getPosition().y + currentPlatform.getTexture().getHeight();
-        }
-        if (position.x <= wall.getWidth()) {
-            position.x = wall.getWidth();
-            velocity.x = -velocity.x;
-        }
-        if (position.x + boulder.getWidth() >= FlickeringInTheDark.WIDTH - wall.getWidth()) {
-            position.x = FlickeringInTheDark.WIDTH - wall.getWidth() - boulder.getWidth();
-            velocity.x = -velocity.x;
-        }
+    public void setBodyLinearVelocity(float x, float y) {
+        boulderBody.setLinearVelocity(x, y);
+    }
+
+    public void update(float dt) {
+        position.set(boulderBody.getPosition().x/PIXELS_TO_METERS-boulder.getWidth()/2, boulderBody.getPosition().y/PIXELS_TO_METERS-boulder.getHeight()/2); // convert physics ball coordinates back to render/pixel coordinates
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 
@@ -93,6 +92,7 @@ public class Boulder {
     public void dispose() {
         wall.dispose();
         boulder.dispose();
+        boulderCircle.dispose();
     }
 }
 
