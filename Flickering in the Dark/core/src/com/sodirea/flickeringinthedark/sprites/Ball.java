@@ -17,18 +17,14 @@ public class Ball {
     private Texture wall;
     private Texture ball;
     private Vector2 position;
-    private Vector2 velocity;
     private Circle bounds;
-    private float minPos;
 
     public Ball(float x, float y) {
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ball = new Texture("ball.png");
         position = new Vector2(x, y);
-        velocity = new Vector2(0, 0);
         bounds = new Circle(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2, ball.getWidth() / 2);
-        minPos = ground.getHeight();
     }
 
     public Vector2 getPosition() {
@@ -39,60 +35,12 @@ public class Ball {
         return ball;
     }
 
-    public Circle getBounds() {
-        return bounds;
-    }
-
-    public void setNewMinPosition(float newMinPos) {
-        minPos = newMinPos;
-    }
-
-    public void resetVelocityY() {
-        velocity.y = GRAVITY - 10;
-    }
-
     public void setPosition(float x, float y) {
         position.set(x, y);
     }
 
-    public float getMinPos() {
-        return minPos;
-    }
-
-    public void jump() {
-        if (position.y <= minPos) {
-            velocity.y = 140;
-        }
-    }
-
-    public void moveLeft(float x) {
-        velocity.x = x;
-    }
-
-    public void moveRight(float y) {
-        velocity.x = y;
-    }
-
-    public void onOverlapWithBoulder(Boulder boulder) {
-        if (bounds.overlaps(boulder.getBounds())) {
-            velocity.set(0, 0);
-        }
-    }
-
-    public void update(float dt, Boulder boulder) {
-        position.add(SCALING_FACTOR * velocity.x, SCALING_FACTOR * velocity.y);
-        if (position.y > minPos) { // add gravity to velocity if off the ground
-            velocity.y += GRAVITY;
-        } else {
-            position.y = minPos;
-            velocity.y = 0;
-        }
-        if (position.x <= wall.getWidth()) {
-            position.x = wall.getWidth();
-        }
-        if (position.x + ball.getWidth() >= FlickeringInTheDark.WIDTH - wall.getWidth()) {
-            position.x = FlickeringInTheDark.WIDTH - wall.getWidth() - ball.getWidth();
-        }
+    public void update(float dt) {
+        position.set(position.x, position.y);
         bounds.setPosition(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2);
     }
 
