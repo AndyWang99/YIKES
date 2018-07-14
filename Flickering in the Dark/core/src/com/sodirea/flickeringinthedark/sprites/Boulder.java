@@ -22,7 +22,7 @@ import static com.sodirea.flickeringinthedark.states.PlayState.PIXELS_TO_METERS;
 
 public class Boulder {
 
-    private static final int MIN_VELOCITY = 10;
+    private static final int MIN_VELOCITY = 20;
     private static final int MAX_ADDITIONAL_VELOCITY = 10;
     private Texture wall;
     private Texture boulder;
@@ -68,20 +68,19 @@ public class Boulder {
 
     public void reposition(float x, float y) {
         position.set(x, y);
-        //velocity.set(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
+        boulderBody.setTransform(new Vector2((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS), 0);
+        boulderBody.setLinearVelocity(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
-    }
-
-    public Vector2 getBodyLinearVelocity() {
-        return boulderBody.getLinearVelocity();
-    }
-
-    public void setBodyLinearVelocity(float x, float y) {
-        boulderBody.setLinearVelocity(x, y);
     }
 
     public void update(float dt) {
         position.set(boulderBody.getPosition().x/PIXELS_TO_METERS-boulder.getWidth()/2, boulderBody.getPosition().y/PIXELS_TO_METERS-boulder.getHeight()/2); // convert physics ball coordinates back to render/pixel coordinates
+        if (position.x <= wall.getWidth()+3) {
+            boulderBody.setLinearVelocity(-boulderBody.getLinearVelocity().x, boulderBody.getLinearVelocity().y);
+        }
+        if (position.x + boulder.getWidth() >= FlickeringInTheDark.WIDTH - wall.getWidth()-3) {
+            boulderBody.setLinearVelocity(-boulderBody.getLinearVelocity().x, boulderBody.getLinearVelocity().y);
+        }
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 

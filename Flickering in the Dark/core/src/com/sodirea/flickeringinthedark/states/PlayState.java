@@ -22,6 +22,8 @@ import com.sodirea.flickeringinthedark.sprites.Ball;
 import com.sodirea.flickeringinthedark.sprites.Boulder;
 import com.sodirea.flickeringinthedark.sprites.Platform;
 
+import java.util.Random;
+
 public class PlayState extends State {
 
     public static final int PLATFORM_INTERVALS = 190;
@@ -42,6 +44,13 @@ public class PlayState extends State {
     private Platform platform6;
     private Array<Platform> platformArray;
     private Boulder boulder1;
+    private Boulder boulder2;
+    private Boulder boulder3;
+    private Boulder boulder4;
+    private Boulder boulder5;
+    private Boulder boulder6;
+    private Array<Boulder> boulderArray;
+    private Random boulderGenerator;
 
     private float totalTimePassed;
     private World world;
@@ -77,21 +86,6 @@ public class PlayState extends State {
                     }
                     if (platform != null && ball.getPosition().y > platform.getPosition().y + platform.getTexture().getHeight()) {
                         platform.cleared();
-                    }
-                }
-
-                if (contact.getFixtureA().getBody() == wallBody
-                        || contact.getFixtureB().getBody() == wallBody
-                        || contact.getFixtureA().getBody() == wallBody2
-                        || contact.getFixtureB().getBody() == wallBody2) {
-                    Boulder boulder = null;
-                    if (contact.getFixtureA().getBody().getUserData() instanceof Boulder) {
-                        boulder = (Boulder) contact.getFixtureA().getBody().getUserData();
-                    } else if (contact.getFixtureB().getBody().getUserData() instanceof Boulder) {
-                        boulder = (Boulder) contact.getFixtureA().getBody().getUserData();
-                    }
-                    if (boulder != null) {
-                        boulder.setBodyLinearVelocity(-boulder.getBodyLinearVelocity().x, boulder.getBodyLinearVelocity().y);
                     }
                 }
             }
@@ -132,7 +126,20 @@ public class PlayState extends State {
         platformArray.add(platform4);
         platformArray.add(platform5);
         platformArray.add(platform6);
-        boulder1 = new Boulder(platform2.getPosition().x, platform2.getPosition().y + platform2.getTexture().getHeight(), world);
+        boulder1 = new Boulder(PLATFORM_INTERVALS, -100, world);
+        boulder2 = new Boulder(2 * PLATFORM_INTERVALS, -100, world);
+        boulder3 = new Boulder(3 * PLATFORM_INTERVALS, -100, world);
+        boulder4 = new Boulder(4 * PLATFORM_INTERVALS, -100, world);
+        boulder5 = new Boulder(5 * PLATFORM_INTERVALS, -100, world);
+        boulder6 = new Boulder(6 * PLATFORM_INTERVALS, -100, world);
+        boulderArray = new Array<Boulder>();
+        boulderArray.add(boulder1);
+        boulderArray.add(boulder2);
+        boulderArray.add(boulder3);
+        boulderArray.add(boulder4);
+        boulderArray.add(boulder5);
+        boulderArray.add(boulder6);
+        boulderGenerator = new Random();
         totalTimePassed = 0;
 
         groundBodyDef = new BodyDef();
@@ -187,18 +194,23 @@ public class PlayState extends State {
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
         ball.update(dt);
-        boulder1.update(dt);
+        for (Boulder boulder: boulderArray) {
+            boulder.update(dt);
+        }
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
             platform.update(dt, world);
             if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
                 platform.reposition(world);
+                if (boulderGenerator.nextBoolean()) {
+                    boulderArray.get(i).reposition(platform.getPosition().x, platform.getPosition().y + platform.getTexture().getHeight());
+                }
             }
         }
         if (totalTimePassed < 60) {
             totalTimePassed += dt;
         }
-        //cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
+        cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
         cam.update();
         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
             gsm.set(new PlayState(gsm));
@@ -218,7 +230,9 @@ public class PlayState extends State {
         for (Platform platform : platformArray) {
             platform.render(sb);
         }
-        boulder1.render(sb);
+        for (Boulder boulder : boulderArray) {
+            boulder.render(sb);
+        }
         sb.end();
         debugRenderer.render(world, cam.combined);
 
