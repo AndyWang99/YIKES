@@ -104,6 +104,10 @@ public class Platform {
         isCleared = true;
     }
 
+    public boolean getIsCleared() {
+        return isCleared;
+    }
+
     public void update(float dt, World world) {
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);

@@ -2,6 +2,7 @@ package com.sodirea.flickeringinthedark.states;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -16,6 +17,7 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.sodirea.flickeringinthedark.FlickeringInTheDark;
 import com.sodirea.flickeringinthedark.sprites.Ball;
@@ -36,6 +38,8 @@ public class PlayState extends State {
     private Texture wall;
     private Texture ballTexture;
     private Ball ball;
+    private int score;
+    private BitmapFont squrave;
     private Platform platform1;
     private Platform platform2;
     private Platform platform3;
@@ -43,6 +47,7 @@ public class PlayState extends State {
     private Platform platform5;
     private Platform platform6;
     private Array<Platform> platformArray;
+    private float lastPlatformTouchedPositionY;
     private Boulder boulder1;
     private Boulder boulder2;
     private Boulder boulder3;
@@ -53,6 +58,7 @@ public class PlayState extends State {
     private Random boulderGenerator;
 
     private float totalTimePassed;
+    private boolean startCamera;
     private World world;
     private Box2DDebugRenderer debugRenderer;
     private BodyDef groundBodyDef;
@@ -84,8 +90,17 @@ public class PlayState extends State {
                     } else if (contact.getFixtureB().getBody().getUserData() instanceof Platform) {
                         platform = (Platform) contact.getFixtureB().getBody().getUserData();
                     }
-                    if (platform != null && ball.getPosition().y > platform.getPosition().y + platform.getTexture().getHeight()) {
+                    if (platform != null && ball.getPosition().y > platform.getPosition().y + platform.getTexture().getHeight() && !platform.getIsCleared()) {
                         platform.cleared();
+                        if (lastPlatformTouchedPositionY == 0) {
+                            score++;
+                        } else {
+                            score += (platform.getPosition().y - lastPlatformTouchedPositionY) / PLATFORM_INTERVALS; // if they skipped a platform (as in they didn't clear one), then the next time they clear a platform, add score equal to the number of platforms they have skipped + the current platform
+                        }
+                        if (!startCamera) {
+                            startCamera = true;
+                        }
+                        lastPlatformTouchedPositionY = platform.getPosition().y;
                     }
                 }
             }
@@ -105,7 +120,7 @@ public class PlayState extends State {
             public void postSolve(Contact contact, ContactImpulse impulse) {
             }
         });
-
+        startCamera = false;
         debugRenderer = new Box2DDebugRenderer();
         cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
         bg = new Texture("bg.png");
@@ -113,6 +128,8 @@ public class PlayState extends State {
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
+        score = 0;
+        squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
         platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
         platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
         platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
@@ -126,6 +143,7 @@ public class PlayState extends State {
         platformArray.add(platform4);
         platformArray.add(platform5);
         platformArray.add(platform6);
+        lastPlatformTouchedPositionY = 0;
         boulder1 = new Boulder(PLATFORM_INTERVALS, -100, world);
         boulder2 = new Boulder(2 * PLATFORM_INTERVALS, -100, world);
         boulder3 = new Boulder(3 * PLATFORM_INTERVALS, -100, world);
@@ -207,11 +225,13 @@ public class PlayState extends State {
                 }
             }
         }
-        if (totalTimePassed < 60) {
-            totalTimePassed += dt;
+        if (startCamera) {
+            if (totalTimePassed < 60) {
+                totalTimePassed += dt;
+            }
+            cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
+            cam.update();
         }
-        cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
-        cam.update();
         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
             gsm.set(new PlayState(gsm));
         }
@@ -233,6 +253,7 @@ public class PlayState extends State {
         for (Boulder boulder : boulderArray) {
             boulder.render(sb);
         }
+        squrave.draw(sb, Integer.toString(score), cam.position.x, cam.position.y+cam.viewportHeight/2, 0, Align.center, false);
         sb.end();
         debugRenderer.render(world, cam.combined);
 
@@ -245,6 +266,7 @@ public class PlayState extends State {
         wall.dispose();
         ballTexture.dispose();
         ball.dispose();
+        squrave.dispose();
         platform1.dispose();
         platform2.dispose();
         platform3.dispose();
@@ -252,6 +274,11 @@ public class PlayState extends State {
         platform5.dispose();
         platform6.dispose();
         boulder1.dispose();
+        boulder2.dispose();
+        boulder3.dispose();
+        boulder4.dispose();
+        boulder5.dispose();
+        boulder6.dispose();
         groundBox.dispose();
         wallBox.dispose();
         wallBox2.dispose();
