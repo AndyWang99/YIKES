@@ -16,7 +16,6 @@ import com.sodirea.flickeringinthedark.FlickeringInTheDark;
 
 import java.util.Random;
 
-import static com.sodirea.flickeringinthedark.sprites.Ball.GRAVITY;
 import static com.sodirea.flickeringinthedark.sprites.Ball.SCALING_FACTOR;
 import static com.sodirea.flickeringinthedark.states.PlayState.PIXELS_TO_METERS;
 

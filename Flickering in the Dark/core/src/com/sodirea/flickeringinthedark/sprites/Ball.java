@@ -20,7 +20,6 @@ import static com.sodirea.flickeringinthedark.states.PlayState.PIXELS_TO_METERS;
 
 public class Ball {
 
-    public static final int GRAVITY = -8;
     public static final float SCALING_FACTOR = 0.17f;
     private Texture ground;
     private Texture wall;

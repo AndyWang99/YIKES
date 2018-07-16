@@ -83,21 +83,14 @@ public class Platform {
         return platform;
     }
 
-    public void reposition(World world) {
+    public void reposition(float y) {
         isCleared = false;
         bridgePlaced = false;
-        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), position.y + PlayState.PLATFORM_INTERVALS * PlayState.NUM_PLATFORMS);
+        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), y);
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
-        platformBodyDef.position.set((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
-        platformBody = world.createBody(platformBodyDef);
-        platformBody.createFixture(platformBox, 0.0f);
-        platformBody.setUserData(this);
-
-        platformBodyDef2.position.set((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
-        platformBody2 = world.createBody(platformBodyDef2);
-        platformBody2.createFixture(platformBox2, 0.0f);
-        platformBody2.setUserData(this);
+        platformBody.setTransform(new Vector2((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
+        platformBody2.setTransform(new Vector2((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
     }
 
     public void cleared() {
@@ -108,7 +101,7 @@ public class Platform {
         return isCleared;
     }
 
-    public void update(float dt, World world) {
+    public void update(float dt) {
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
         if (isCleared) {
@@ -118,11 +111,7 @@ public class Platform {
                 position.x += (FlickeringInTheDark.WIDTH - position.x) / 10;
             }
             if (!bridgePlaced) {
-                platformBodyDef.position.set(platformBody2.getPosition().x-platform.getWidth()/2*PIXELS_TO_METERS, (position.y + platform.getHeight() / 2) * PIXELS_TO_METERS);
-                platformBody = world.createBody(platformBodyDef);
-                platformBody.createFixture(platformBox, 0.0f);
-                platformBody.setUserData(this);
-                bridgePlaced = true;
+                platformBody.setTransform(new Vector2(platformBody2.getPosition().x-platform.getWidth()*PIXELS_TO_METERS, (position.y + platform.getHeight() / 2) * PIXELS_TO_METERS), 0);
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.sodirea.flickeringinthedark.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -39,6 +40,7 @@ public class PlayState extends State {
     private Texture ballTexture;
     private Ball ball;
     private int score;
+    private Preferences prefs;
     private BitmapFont squrave;
     private Platform platform1;
     private Platform platform2;
@@ -60,7 +62,6 @@ public class PlayState extends State {
     private float totalTimePassed;
     private boolean startCamera;
     private World world;
-    private Box2DDebugRenderer debugRenderer;
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
@@ -121,7 +122,6 @@ public class PlayState extends State {
             }
         });
         startCamera = false;
-        debugRenderer = new Box2DDebugRenderer();
         cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
@@ -130,6 +130,7 @@ public class PlayState extends State {
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         score = 0;
         squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
+        prefs = Gdx.app.getPreferences("Prefs");
         platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
         platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
         platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
@@ -188,8 +189,6 @@ public class PlayState extends State {
         wallFixtureDef2.density = 0.0f;
         wallFixtureDef2.friction = 0.0f;
         wallFixture2 = wallBody2.createFixture(wallFixtureDef2);
-
-
     }
 
     @Override
@@ -217,9 +216,9 @@ public class PlayState extends State {
         }
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
-            platform.update(dt, world);
+            platform.update(dt);
             if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
-                platform.reposition(world);
+                platform.reposition(platform.getPosition().y + PLATFORM_INTERVALS * NUM_PLATFORMS);
                 if (boulderGenerator.nextBoolean()) {
                     boulderArray.get(i).reposition(platform.getPosition().x, platform.getPosition().y + platform.getTexture().getHeight());
                 }
@@ -255,8 +254,6 @@ public class PlayState extends State {
         }
         squrave.draw(sb, Integer.toString(score), cam.position.x, cam.position.y+cam.viewportHeight/2, 0, Align.center, false);
         sb.end();
-        debugRenderer.render(world, cam.combined);
-
     }
 
     @Override
