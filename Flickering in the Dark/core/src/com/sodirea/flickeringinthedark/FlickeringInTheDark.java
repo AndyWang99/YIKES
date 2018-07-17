@@ -13,7 +13,7 @@ public class FlickeringInTheDark extends ApplicationAdapter {
 
 	public static final int WIDTH = 480;
 	public static final int HEIGHT = 800;
-	public static final String TITLE = "Flickering in the Darkness";
+	public static final String TITLE = "Flickering in the Dark";
 	private SpriteBatch sb;
 	private GameStateManager gsm;
 	

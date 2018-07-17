@@ -39,6 +39,9 @@ public class PlayState extends State {
     private Texture wall;
     private Texture ballTexture;
     private Ball ball;
+    private Texture deathscreen;
+    private boolean dead;
+    private Vector2 deathscreenPos;
     private int score;
     private Preferences prefs;
     private BitmapFont squrave;
@@ -128,6 +131,9 @@ public class PlayState extends State {
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
+        dead = false;
+        deathscreen = new Texture("deathscreen.png");
+        deathscreenPos = new Vector2(cam.position.x - cam.viewportWidth/2 - deathscreen.getWidth(), cam.position.y);
         score = 0;
         squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
         prefs = Gdx.app.getPreferences("Prefs");
@@ -193,8 +199,18 @@ public class PlayState extends State {
 
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched() && ball.getNumberOfFootContacts() > 0) {
-            ball.setBodyLinearVelocity(ball.getBodyLinearVelocity().x, 50f);
+        if (!dead) {
+            if (Gdx.input.justTouched() && ball.getNumberOfFootContacts() > 0) {
+                ball.setBodyLinearVelocity(ball.getBodyLinearVelocity().x, 50f);
+            }
+        } else {
+            if (Gdx.input.justTouched()) {
+                if (deathscreenPos.x+deathscreen.getWidth()/2 < cam.position.x) {
+                    deathscreenPos.x = cam.position.x - deathscreen.getWidth()/2;
+                } else {
+                    gsm.set(new MenuState(gsm));
+                }
+            }
         }
         float accelX = Gdx.input.getAccelerometerX();
         if (accelX > 0) {
@@ -208,6 +224,12 @@ public class PlayState extends State {
     @Override
     public void update(float dt) {
         handleInput();
+        if (dead) {
+            if (deathscreenPos.x+deathscreen.getWidth()/2 < cam.position.x) {
+                deathscreenPos.x += (cam.position.x - deathscreenPos.x+deathscreen.getWidth()/2) / 50;
+            }
+            deathscreenPos.y = cam.position.y;
+        }
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
         ball.update(dt);
@@ -232,7 +254,11 @@ public class PlayState extends State {
             cam.update();
         }
         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight()) {
-            gsm.set(new PlayState(gsm));
+            if (prefs.getInteger("highscore", 0) < score) {
+                prefs.putInteger("highscore", score);
+                prefs.flush();
+            }
+            dead = true;
         }
         world.step(TIME_STEP, 6, 2);
     }
@@ -252,6 +278,17 @@ public class PlayState extends State {
         for (Boulder boulder : boulderArray) {
             boulder.render(sb);
         }
+        if (dead) {
+            sb.draw(deathscreen, deathscreenPos.x, deathscreenPos.y);
+            squrave.getData().setScale(0.5f, 0.5f);
+            squrave.draw(sb, "GAME OVER", deathscreenPos.x+deathscreen.getWidth()/2, deathscreenPos.y+deathscreen.getHeight() - deathscreen.getHeight() / 20, 0, Align.center, false);
+            squrave.getData().setScale(0.35f, 0.35f);
+            squrave.draw(sb, Integer.toString(score), deathscreenPos.x+deathscreen.getWidth()/2+deathscreen.getWidth()/4, deathscreenPos.y+deathscreen.getHeight()/2+deathscreen.getHeight()/12, 0, Align.left, false);
+            squrave.draw(sb, "SCORE", deathscreenPos.x+deathscreen.getWidth()/20, deathscreenPos.y+deathscreen.getHeight()/2+deathscreen.getHeight()/12, 0, Align.left, false);
+            squrave.draw(sb, Integer.toString(prefs.getInteger("highscore", 0)), deathscreenPos.x+deathscreen.getWidth()/2+deathscreen.getWidth()/4,deathscreenPos.y+deathscreen.getHeight()/4+deathscreen.getHeight()/12, 0, Align.left, false);
+            squrave.draw(sb, "HIGHSCORE", deathscreenPos.x+deathscreen.getWidth()/20,deathscreenPos.y+deathscreen.getHeight()/4+deathscreen.getHeight()/12, 0, Align.left, false);
+        }
+        squrave.getData().setScale(1f, 1f);
         squrave.draw(sb, Integer.toString(score), cam.position.x, cam.position.y+cam.viewportHeight/2, 0, Align.center, false);
         sb.end();
     }
@@ -263,6 +300,7 @@ public class PlayState extends State {
         wall.dispose();
         ballTexture.dispose();
         ball.dispose();
+        deathscreen.dispose();
         squrave.dispose();
         platform1.dispose();
         platform2.dispose();

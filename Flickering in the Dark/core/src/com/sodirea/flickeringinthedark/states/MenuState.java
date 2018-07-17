@@ -38,6 +38,7 @@ public class MenuState extends State {
     private Texture wall;
     private Texture ballTexture;
     private Ball ball;
+    private BitmapFont squrave;
     private Platform platform1;
     private Platform platform2;
     private Platform platform3;
@@ -54,6 +55,7 @@ public class MenuState extends State {
     private Array<Boulder> boulderArray;
     private Random boulderGenerator;
     private Boolean startScrollDown;
+    private Boolean setCamY;
 
     private World world;
     private BodyDef groundBodyDef;
@@ -75,13 +77,14 @@ public class MenuState extends State {
         cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
-        cam.position.y = 4000 + cam.viewportHeight / 2 + ground.getHeight();
         wall = new Texture("wall.png");
+        squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
         Box2D.init();
         world = new World(new Vector2(0, GRAVITY), true);
         ballTexture = new Texture("ball.png");
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         startScrollDown = false;
+        setCamY = false;
         platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
         platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
         platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
@@ -151,6 +154,10 @@ public class MenuState extends State {
 
     @Override
     public void update(float dt) {
+        if (!setCamY) {
+            cam.position.y = 5000;
+            setCamY = true;
+        }
         handleInput();
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
@@ -203,6 +210,10 @@ public class MenuState extends State {
         for (Boulder boulder : boulderArray) {
             boulder.render(sb);
         }
+        squrave.getData().setScale(0.8f, 0.8f);
+        squrave.draw(sb, FlickeringInTheDark.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
+        squrave.getData().setScale(0.3f, 0.3f);
+        squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 100, cam.position.y + cam.viewportHeight/20, 200, Align.center, true);
         sb.end();
     }
 
@@ -213,6 +224,7 @@ public class MenuState extends State {
         wall.dispose();
         ballTexture.dispose();
         ball.dispose();
+        squrave.dispose();
         platform1.dispose();
         platform2.dispose();
         platform3.dispose();
