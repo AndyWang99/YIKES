@@ -3,6 +3,7 @@ package com.sodirea.flickeringinthedark;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -16,13 +17,18 @@ public class FlickeringInTheDark extends ApplicationAdapter {
 	public static final String TITLE = "Flickering in the Dark";
 	private SpriteBatch sb;
 	private GameStateManager gsm;
-	
+	private Preferences prefs;
+
 	@Override
 	public void create () {
 		Gdx.gl.glClearColor(1, 0, 0, 1);
 		sb = new SpriteBatch();
 		gsm = new GameStateManager();
 		gsm.push(new MenuState(gsm));
+
+		prefs = Gdx.app.getPreferences("Prefs");
+		prefs.putInteger("DOUBLE JUMP Score Requirements", 50);
+		prefs.flush();
 	}
 
 	@Override

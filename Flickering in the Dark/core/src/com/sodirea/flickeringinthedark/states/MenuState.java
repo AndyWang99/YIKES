@@ -1,10 +1,12 @@
 package com.sodirea.flickeringinthedark.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2D;
@@ -38,6 +40,8 @@ public class MenuState extends State {
     private Texture wall;
     private Texture ballTexture;
     private Ball ball;
+    private Sound menuclick;
+    private Texture shopBtn;
     private BitmapFont squrave;
     private Platform platform1;
     private Platform platform2;
@@ -56,6 +60,8 @@ public class MenuState extends State {
     private Random boulderGenerator;
     private Boolean startScrollDown;
     private Boolean setCamY;
+    private float timePassed;
+    private boolean addToSize;
 
     private World world;
     private BodyDef groundBodyDef;
@@ -78,13 +84,17 @@ public class MenuState extends State {
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
+        menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
         squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
         Box2D.init();
         world = new World(new Vector2(0, GRAVITY), true);
         ballTexture = new Texture("ball.png");
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
+        shopBtn = new Texture("shopbtn.png");
         startScrollDown = false;
         setCamY = false;
+        timePassed = 0;
+        addToSize = true;
         platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
         platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
         platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
@@ -148,7 +158,17 @@ public class MenuState extends State {
     @Override
     protected void handleInput() {
         if (Gdx.input.justTouched()) {
-            startScrollDown = true;
+            menuclick.play(1f);
+            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+            cam.unproject(mousePos);
+            if (mousePos.x > cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth()
+                    && mousePos.x < cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20
+                    && mousePos.y > cam.position.y - cam.viewportHeight/5
+                    && mousePos.y < cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()) {
+                gsm.set(new ShopState(gsm));
+            } else {
+                startScrollDown = true;
+            }
         }
     }
 
@@ -183,6 +203,17 @@ public class MenuState extends State {
                 }
             }
         }
+        if (timePassed > 0.5f) {
+            addToSize = false;
+        }
+        if (timePassed < 0) {
+            addToSize = true;
+        }
+        if (addToSize) {
+            timePassed += dt;
+        } else {
+            timePassed -= dt;
+        }
         if (!startScrollDown) {
             cam.position.y += 24 * Ball.SCALING_FACTOR;
         } else {
@@ -210,10 +241,13 @@ public class MenuState extends State {
         for (Boulder boulder : boulderArray) {
             boulder.render(sb);
         }
+        sb.draw(shopBtn, cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth(), cam.position.y - cam.viewportHeight/5);
+        squrave.getData().setScale(0.55f, 0.55f);
+        squrave.draw(sb, "SHOP", cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth()/2, cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()/2 + shopBtn.getHeight()/5, 0, Align.center, false);
         squrave.getData().setScale(0.8f, 0.8f);
         squrave.draw(sb, FlickeringInTheDark.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
-        squrave.getData().setScale(0.3f, 0.3f);
-        squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 100, cam.position.y + cam.viewportHeight/20, 200, Align.center, true);
+        squrave.getData().setScale(0.3f + timePassed/10, 0.3f + timePassed/10);
+        squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 125, cam.position.y + cam.viewportHeight/20, 250, Align.center, false);
         sb.end();
     }
 
@@ -224,6 +258,8 @@ public class MenuState extends State {
         wall.dispose();
         ballTexture.dispose();
         ball.dispose();
+        menuclick.dispose();
+        shopBtn.dispose();
         squrave.dispose();
         platform1.dispose();
         platform2.dispose();
