@@ -1,10 +1,8 @@
 package com.sodirea.yikes.sprites;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -13,16 +11,12 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
-import com.sodirea.yikes.FlickeringInTheDark;
-import com.sodirea.yikes.states.PlayState;
 
 import static com.sodirea.yikes.states.PlayState.PIXELS_TO_METERS;
 
 public class Ball {
 
     public static final float SCALING_FACTOR = 0.17f;
-    private Texture ground;
-    private Texture wall;
     private Texture ball;
     private Vector2 position;
     private int numberOfFootContacts;
@@ -39,8 +33,6 @@ public class Ball {
     private Fixture footFixture;
 
     public Ball(float x, float y, World world) {
-        ground = new Texture("ground.png");
-        wall = new Texture("wall.png");
         ball = new Texture("ball.png");
         position = new Vector2(x, y);
         numberOfFootContacts = 0;
@@ -78,6 +70,10 @@ public class Ball {
         return position;
     }
 
+    public void setPosition(float x, float y) { // x, y are in rendering coordinates. changes the ballBody position, which then changes rendering position and bounds via the update method
+        ballBody.setTransform(new Vector2((x+ball.getWidth()/2) * PIXELS_TO_METERS, (y+ball.getHeight()/2) * PIXELS_TO_METERS), ballBody.getAngle());
+    }
+
     public Texture getTexture(){
         return ball;
     }
@@ -113,8 +109,6 @@ public class Ball {
     }
 
     public void dispose() {
-        ground.dispose();
-        wall.dispose();
         ball.dispose();
         ballCircle.dispose();
         footBox.dispose();

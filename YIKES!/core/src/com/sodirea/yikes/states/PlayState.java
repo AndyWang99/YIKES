@@ -10,7 +10,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2D;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -21,7 +20,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.sodirea.yikes.FlickeringInTheDark;
+import com.sodirea.yikes.Yikes;
 import com.sodirea.yikes.sprites.Ball;
 import com.sodirea.yikes.sprites.Boulder;
 import com.sodirea.yikes.sprites.Platform;
@@ -130,7 +129,7 @@ public class PlayState extends State {
             }
         });
         startCamera = false;
-        cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
+        cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");

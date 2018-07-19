@@ -8,8 +8,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
-import com.sodirea.yikes.FlickeringInTheDark;
-import com.sodirea.yikes.states.PlayState;
+import com.sodirea.yikes.Yikes;
 
 import java.util.Random;
 
@@ -39,7 +38,36 @@ public class Platform {
         xGenerator = new Random();
         holeWidth = MIN_HOLE_WIDTH + xGenerator.nextInt(MAX_ADDITIONAL_HOLE_WIDTH);
         platform = new Texture("platform.png");
-        position = new Vector2(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), y);
+        position = new Vector2(xGenerator.nextInt(Yikes.WIDTH - holeWidth), y);
+        bounds1 = new Rectangle(position.x - platform.getWidth(), position.y, platform.getWidth(), platform.getHeight());
+        bounds2 = new Rectangle(position.x + holeWidth, position.y, platform.getWidth(), platform.getHeight());
+        isCleared = false;
+        bridgePlaced = false;
+
+        platformBodyDef = new BodyDef();
+        platformBodyDef.position.set((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
+        platformBody = world.createBody(platformBodyDef);
+        platformBox = new PolygonShape();
+        platformBox.setAsBox(platform.getWidth() / 2 * PIXELS_TO_METERS, platform.getHeight() / 2 * PIXELS_TO_METERS);
+        platformBody.createFixture(platformBox, 0.0f);
+        platformBody.setUserData(this);
+
+        platformBodyDef2 = new BodyDef();
+        platformBodyDef2.position.set((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
+        platformBody2 = world.createBody(platformBodyDef2);
+        platformBox2 = new PolygonShape();
+        platformBox2.setAsBox(platform.getWidth() / 2 * PIXELS_TO_METERS, platform.getHeight() / 2 * PIXELS_TO_METERS);
+        platformBody2.createFixture(platformBox2, 0.0f);
+        platformBody2.createFixture(platformBox2, 0.0f);
+        platformBody2.setUserData(this);
+
+    }
+
+    public Platform(float x, float y, int width, World world) {
+        xGenerator = new Random();
+        holeWidth = width;
+        platform = new Texture("platform.png");
+        position = new Vector2(x, y);
         bounds1 = new Rectangle(position.x - platform.getWidth(), position.y, platform.getWidth(), platform.getHeight());
         bounds2 = new Rectangle(position.x + holeWidth, position.y, platform.getWidth(), platform.getHeight());
         isCleared = false;
@@ -86,7 +114,7 @@ public class Platform {
     public void reposition(float y) {
         isCleared = false;
         bridgePlaced = false;
-        position.set(xGenerator.nextInt(FlickeringInTheDark.WIDTH - holeWidth), y);
+        position.set(xGenerator.nextInt(Yikes.WIDTH - holeWidth), y);
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
         platformBody.setTransform(new Vector2((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
@@ -105,10 +133,10 @@ public class Platform {
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
         if (isCleared) {
-            if (position.x < FlickeringInTheDark.WIDTH / 2 && position.x != -holeWidth) { // hole is closer to left, so move right platform over to left side
+            if (position.x < Yikes.WIDTH / 2 && position.x != -holeWidth) { // hole is closer to left, so move right platform over to left side
                 position.x -= (position.x + holeWidth) / 10;
-            } else if (position.x >= FlickeringInTheDark.WIDTH / 2 && position.x != FlickeringInTheDark.WIDTH) {
-                position.x += (FlickeringInTheDark.WIDTH - position.x) / 10;
+            } else if (position.x >= Yikes.WIDTH / 2 && position.x != Yikes.WIDTH) {
+                position.x += (Yikes.WIDTH - position.x) / 10;
             }
             if (!bridgePlaced) {
                 platformBody.setTransform(new Vector2(platformBody2.getPosition().x-platform.getWidth()*PIXELS_TO_METERS, (position.y + platform.getHeight() / 2) * PIXELS_TO_METERS), 0);

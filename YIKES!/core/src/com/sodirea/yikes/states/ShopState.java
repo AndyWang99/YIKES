@@ -12,20 +12,17 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
-import com.sodirea.yikes.FlickeringInTheDark;
+import com.sodirea.yikes.Yikes;
 
 public class ShopState extends State {
 
@@ -41,7 +38,7 @@ public class ShopState extends State {
 
     protected ShopState(GameStateManager gsm) {
         super(gsm);
-        cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
+        cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
         menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
         bg = new Image(new TextureRegionDrawable(new TextureRegion(new Texture("bg.png"))));
         unlocksArray = new Array<ImageTextButton>();

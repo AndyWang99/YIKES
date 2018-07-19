@@ -10,17 +10,13 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2D;
-import com.badlogic.gdx.physics.box2d.Contact;
-import com.badlogic.gdx.physics.box2d.ContactImpulse;
-import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.sodirea.yikes.FlickeringInTheDark;
+import com.sodirea.yikes.Yikes;
 import com.sodirea.yikes.sprites.Ball;
 import com.sodirea.yikes.sprites.Boulder;
 import com.sodirea.yikes.sprites.Platform;
@@ -80,7 +76,7 @@ public class MenuState extends State {
 
     public MenuState(GameStateManager gsm) {
         super(gsm);
-        cam.setToOrtho(false, FlickeringInTheDark.WIDTH, FlickeringInTheDark.HEIGHT);
+        cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
@@ -151,8 +147,6 @@ public class MenuState extends State {
         wallFixtureDef2.density = 0.0f;
         wallFixtureDef2.friction = 0.0f;
         wallFixture2 = wallBody2.createFixture(wallFixtureDef2);
-
-
     }
 
     @Override
@@ -245,7 +239,7 @@ public class MenuState extends State {
         squrave.getData().setScale(0.55f, 0.55f);
         squrave.draw(sb, "SHOP", cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth()/2, cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()/2 + shopBtn.getHeight()/5, 0, Align.center, false);
         squrave.getData().setScale(1f, 1f);
-        squrave.draw(sb, FlickeringInTheDark.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
+        squrave.draw(sb, Yikes.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
         squrave.getData().setScale(0.3f + timePassed/10, 0.3f + timePassed/10);
         squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 125, cam.position.y + cam.viewportHeight/20, 250, Align.center, false);
         sb.end();

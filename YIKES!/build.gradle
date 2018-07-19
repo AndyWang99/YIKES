@@ -21,7 +21,7 @@ allprojects {
 
     version = '1.0'
     ext {
-        appName = "Flickering in the Dark"
+        appName = "YIKES!"
         gdxVersion = '1.9.8'
         roboVMVersion = '2.3.3'
         box2DLightsVersion = '1.4'
@@ -31,7 +31,8 @@ allprojects {
 
     repositories {
         mavenLocal()
-        mavenCentral()
+        jcenter()
+        google()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }
@@ -80,6 +81,7 @@ project(":core") {
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+        compile "io.socket:socket.io-client:1.0.0"
         
     }
 }
