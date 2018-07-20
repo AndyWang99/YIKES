@@ -1,3 +1,9 @@
+const min_hole_width = 120
+const max_additional_hole_width = 60
+const num_platforms = 6
+const platform_interval = 190;
+const yikes_width = 480;
+const ground_height = 150;
 var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
@@ -6,6 +12,10 @@ var platforms = [];
 
 server.listen(8080, function(){
 	console.log("Server is now running...");
+    for (var i = 0; i < num_platforms; i++) {
+         var width = min_hole_width + Math.random() * max_additional_hole_width;
+         platforms.push(new platform(width, Math.random() * (yikes_width - width), ground_height + (i+1) * platform_interval));
+    }
 });
 
 io.on('connection', function(socket) {
@@ -25,18 +35,15 @@ io.on('connection', function(socket) {
         }
     });
 
-    socket.on('setInitialPlatforms', function(array) {
-            for (var i = 0; i < array.length; i++) {
-                platforms.push(new platform(array[i].width, array[i].x, array[i].y));
-            }
-        });
+    socket.on('startCamera', function() {
+        socket.broadcast.emit('startCamera', { start: true });
+    });
 
-    socket.on('platformsUpdate', function(array) {
-        for (var i = 0; i < array.length; i++) {
-            platforms[i].x = array[i].x;
-            platforms[i].y = array[i].y;
-            platforms[i].width = array[i].width;
-        }
+    socket.on('repositionPlatform', function(data) {
+        platforms[data.index].x = data.x;
+        platforms[data.index].y = data.y;
+        platforms[data.index].width = data.width;
+        socket.broadcast.emit('repositionPlatform', data);
     });
 
 	socket.on('disconnect', function() {
@@ -48,7 +55,7 @@ io.on('connection', function(socket) {
             }
 		}
 	});
-	players.push(new player(socket.id, 200, 200));
+	players.push(new player(socket.id, yikes_width/2, ground_height));
 });
 
 function player(id, x, y) {

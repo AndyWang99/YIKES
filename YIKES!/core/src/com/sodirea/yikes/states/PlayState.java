@@ -41,7 +41,7 @@ public class PlayState extends State {
     private Ball ball;
     private Sound jump;
     private Sound gameover;
-    private Sound menuclick;
+    //private Sound menuclick;
     private Texture deathscreen;
     private boolean dead;
     private Vector2 deathscreenPos;
@@ -137,7 +137,7 @@ public class PlayState extends State {
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         jump = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
         gameover = Gdx.audio.newSound(Gdx.files.internal("gameover.wav"));
-        menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
+        //menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
         dead = false;
         deathscreen = new Texture("deathscreen.png");
         deathscreenPos = new Vector2(cam.position.x - cam.viewportWidth/2 - deathscreen.getWidth(), cam.position.y);
@@ -225,7 +225,7 @@ public class PlayState extends State {
             }
         } else {
             if (Gdx.input.justTouched()) {
-                menuclick.play(1f);
+                //menuclick.play(1f);
                 if (deathscreenPos.x+deathscreen.getWidth()/2 < cam.position.x) {
                     deathscreenPos.x = cam.position.x - deathscreen.getWidth()/2;
                 } else {
@@ -324,7 +324,7 @@ public class PlayState extends State {
         ball.dispose();
         jump.dispose();
         gameover.dispose();
-        menuclick.dispose();
+        //menuclick.dispose();
         deathscreen.dispose();
         squrave.dispose();
         platform1.dispose();

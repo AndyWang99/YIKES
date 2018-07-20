@@ -114,7 +114,19 @@ public class Platform {
     public void reposition(float y) {
         isCleared = false;
         bridgePlaced = false;
+        holeWidth = MIN_HOLE_WIDTH + xGenerator.nextInt(MAX_ADDITIONAL_HOLE_WIDTH);
         position.set(xGenerator.nextInt(Yikes.WIDTH - holeWidth), y);
+        bounds1.setPosition(position.x - platform.getWidth(), position.y);
+        bounds2.setPosition(position.x + holeWidth, position.y);
+        platformBody.setTransform(new Vector2((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
+        platformBody2.setTransform(new Vector2((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
+    }
+
+    public void reposition(float x, float y, int width) {
+        isCleared = false;
+        bridgePlaced = false;
+        holeWidth = width;
+        position.set(x, y);
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
         platformBody.setTransform(new Vector2((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);

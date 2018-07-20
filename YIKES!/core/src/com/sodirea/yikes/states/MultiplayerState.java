@@ -45,10 +45,15 @@ public class MultiplayerState extends State {
     private Texture ground;
     private Texture wall;
     private Texture ballTexture;
+    private float totalTimePassed;
+    private boolean startCamera;
     private World world;
     private Array<Platform> platformArray;
     private Array<Vector2> platformPositionArray;
     private Array<Integer> platformWidthArray;
+    private boolean needsPlatforms;
+    private int toRepositionIndex;
+    private boolean giveServerPositionCoordinates;
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
@@ -73,9 +78,14 @@ public class MultiplayerState extends State {
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
+        totalTimePassed = 0;
+        startCamera = false;
         platformArray = new Array<Platform>();
         platformPositionArray = new Array<Vector2>();
         platformWidthArray = new Array<Integer>();
+        needsPlatforms = true;
+        toRepositionIndex = -1; // if it is not -1, then a platform needs to be repositioned
+        giveServerPositionCoordinates = false;
         cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
 
         Box2D.init();
@@ -83,15 +93,32 @@ public class MultiplayerState extends State {
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
-                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) { // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
-                    player.addNumberOfFootContacts(); // add to the total number of contact points
+                if (contact.getFixtureA().getBody() != null && contact.getFixtureB().getBody().getUserData() != null) {
+                    if (contact.getFixtureA().getBody().getUserData() == player || contact.getFixtureB().getBody().getUserData() == player) { // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                        player.addNumberOfFootContacts(); // add to the total number of contact points
+                        Platform platform = null;
+                        if (contact.getFixtureA().getBody().getUserData() instanceof Platform) {
+                            platform = (Platform) contact.getFixtureA().getBody().getUserData();
+                        } else if (contact.getFixtureB().getBody().getUserData() instanceof Platform) {
+                            platform = (Platform) contact.getFixtureB().getBody().getUserData();
+                        }
+                        if (platform != null && player.getPosition().y > platform.getPosition().y + platform.getTexture().getHeight() && !platform.getIsCleared()) {
+                            if (!startCamera) {
+                                startCamera = true;
+                                socket.emit("startCamera"); // make camera start for every player
+                                giveServerPositionCoordinates = true; // the first player to step on a platform will give the server coordinates to determine when to reposition platforms
+                            }
+                        }
+                    }
                 }
             }
 
             @Override
             public void endContact(Contact contact) {
-                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) {
-                    player.lessNumberOfFootContacts();
+                if (contact.getFixtureA().getBody() != null && contact.getFixtureB().getBody().getUserData() != null) {
+                    if (contact.getFixtureA().getBody().getUserData() == player || contact.getFixtureB().getBody().getUserData() == player) {
+                        player.lessNumberOfFootContacts();
+                    }
                 }
             }
 
@@ -168,38 +195,42 @@ public class MultiplayerState extends State {
             } catch(JSONException e) {
                 Gdx.app.log("SOCKET.IO", "Error sending update data");
             }
-            if (platformPositionArray.size == 0) { // no platforms were found on the server. so initalize them and emit to the server
-                JSONArray platforms = new JSONArray();
-                for (int i = 0; i < NUM_PLATFORMS; i++) {
-                    platformArray.add(new Platform(ground.getHeight() + (i+1) * PLATFORM_INTERVALS, world));
-                    platformPositionArray.add(platformArray.get(i).getPosition());
-                    platformWidthArray.add(platformArray.get(i).getHoleWidth());
-                    JSONObject platform = new JSONObject();
-                    try {
-                        platform.put("x", platformArray.get(i).getPosition().x);
-                        platform.put("y", platformArray.get(i).getPosition().y);
-                        platform.put("width", platformArray.get(i).getHoleWidth());
-                        platforms.put(i, platform);
-                        socket.emit("setInitialPlatforms", platforms);
-                    } catch (JSONException e) {
-
-                    }
-                }
-            } else { // put position and width into platform array
-                for (int i = 0; i < platformPositionArray.size; i++) {
+            if (needsPlatforms) {
+                for (int i = 0; i < platformPositionArray.size; i++) { // constantly updates platformArray with new coordinates from position and width arrays (if they are updated/repositioned by the server)
                     Vector2 position = platformPositionArray.get(i);
                     Integer width = platformWidthArray.get(i);
                     platformArray.add(new Platform(position.x, position.y, width, world));
                 }
+                needsPlatforms = false;
             }
+        }
+        if (toRepositionIndex != -1) {
+            platformArray.get(toRepositionIndex).reposition(platformPositionArray.get(toRepositionIndex).x, platformPositionArray.get(toRepositionIndex).y, platformWidthArray.get(toRepositionIndex));
+            toRepositionIndex = -1;
         }
         handleInput();
         if (playerConnected && player == null) {
             player = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         }
 
-        for (Platform platform : platformArray) {
+        for (int i = 0; i < platformArray.size; i++) {
+            Platform platform = platformArray.get(i);
             platform.update(dt);
+            if (giveServerPositionCoordinates) { // if our representative needs to reposition a platform, all other players also reposition
+                if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
+                    platform.reposition(platform.getPosition().y + PLATFORM_INTERVALS * NUM_PLATFORMS);
+                    JSONObject repositionedPlatform = new JSONObject();
+                    try {
+                        repositionedPlatform.put("index", i);
+                        repositionedPlatform.put("x", platform.getPosition().x);
+                        repositionedPlatform.put("y", platform.getPosition().y);
+                        repositionedPlatform.put("width", platform.getHoleWidth());
+                        socket.emit("repositionPlatform", repositionedPlatform);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
         for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the hashmap with list of ball players with the positions hashmap
             String id = entry.getKey();
@@ -217,6 +248,14 @@ public class MultiplayerState extends State {
         }
         for (HashMap.Entry<String, Ball> entry : otherPlayers.entrySet()) {
             entry.getValue().update(dt);
+        }
+
+        if (startCamera) {
+            if (totalTimePassed < 60) {
+                totalTimePassed += dt;
+            }
+            cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
+            cam.update();
         }
 
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
@@ -259,7 +298,7 @@ public class MultiplayerState extends State {
 
     public void connectSocket() {
         try {
-            socket = IO.socket("http://localhost:8080");
+            socket = IO.socket("http://192.168.0.13:8080");
             socket.connect();
         } catch(Exception e) {
             System.out.println(e);
@@ -353,6 +392,31 @@ public class MultiplayerState extends State {
                     }
                 } catch (JSONException e) {
 
+                }
+            }
+        }).on("startCamera", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                try {
+                    startCamera = ((JSONObject) args[0]).getBoolean("start");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).on("repositionPlatform", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                JSONObject repositionedPlatform = (JSONObject) args[0];
+                try {
+                    int i = repositionedPlatform.getInt("index");
+                    float x = ((Double) repositionedPlatform.getDouble("x")).floatValue();
+                    float y = ((Double) repositionedPlatform.getDouble("y")).floatValue();
+                    int width = repositionedPlatform.getInt("width");
+                    platformPositionArray.set(i, new Vector2(x, y));
+                    platformWidthArray.set(i, width);
+                    toRepositionIndex = i;
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
             }
         });
