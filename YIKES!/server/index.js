@@ -2,6 +2,8 @@ const min_hole_width = 120
 const max_additional_hole_width = 60
 const num_platforms = 6
 const platform_interval = 190;
+const min_velocity = 20;
+const max_additional_velocity = 10;
 const yikes_width = 480;
 const ground_height = 150;
 var app = require('express')();
@@ -9,12 +11,14 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var players = [];
 var platforms = [];
+var boulders = [];
 
 server.listen(8080, function(){
 	console.log("Server is now running...");
     for (var i = 0; i < num_platforms; i++) {
          var width = min_hole_width + Math.random() * max_additional_hole_width;
          platforms.push(new platform(width, Math.random() * (yikes_width - width), ground_height + (i+1) * platform_interval));
+         boulders.push(new boulder(0, platform_interval * i, -100));
     }
 });
 
@@ -23,6 +27,7 @@ io.on('connection', function(socket) {
 	socket.emit('socketID', { id: socket.id });
 	socket.emit('getPlayers', players);
 	socket.emit('getPlatforms', platforms);
+	socket.emit('getBoulders', boulders);
     socket.broadcast.emit('newPlayer', { id: socket.id});
     socket.on('playerUpdate', function(data) {
         data.id = socket.id;
@@ -46,6 +51,13 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('repositionPlatform', data);
     });
 
+    socket.on('repositionBoulder', function(data) {
+        boulders[data.index].x = data.x;
+        boulders[data.index].y = data.y;
+        boulders[data.index].velocity = data.velocity;
+        socket.broadcast.emit('repositionBoulder', data);
+    });
+
 	socket.on('disconnect', function() {
 		console.log("Player Disconnected");
 		socket.broadcast.emit('playerDisconnected', { id: socket.id });
@@ -66,6 +78,12 @@ function player(id, x, y) {
 
 function platform(width, x, y) {
     this.width = width;
+    this.x = x;
+    this.y = y;
+}
+
+function boulder(velocity, x, y) {
+    this.velocity = velocity;
     this.x = x;
     this.y = y;
 }

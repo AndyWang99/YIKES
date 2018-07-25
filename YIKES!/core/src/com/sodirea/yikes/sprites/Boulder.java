@@ -50,6 +50,26 @@ public class Boulder {
         boulderBody.setLinearVelocity(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
     }
 
+    public Boulder(float velocityX, float x, float y, World world) {
+        wall = new Texture("wall.png");
+        boulder = new Texture("boulder.png");
+        position = new Vector2(x, y);
+        bounds = new Circle(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2, boulder.getWidth() / 2);
+        boulderBodyDef = new BodyDef();
+        boulderBodyDef.type = BodyDef.BodyType.DynamicBody;
+        boulderBodyDef.position.set((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics boulder coodinates
+        boulderBody = world.createBody(boulderBodyDef);
+        boulderCircle = new CircleShape();
+        boulderCircle.setRadius((boulder.getWidth()/2) * PIXELS_TO_METERS);
+        boulderFixtureDef = new FixtureDef();
+        boulderFixtureDef.shape = boulderCircle;
+        boulderFixtureDef.density = 9999f; // giving it a very high density makes the boulder act like a kinematic body (in that the player's ball adds minimal momentum to the boulder on collisions) that is only affected by gravity
+        boulderFixtureDef.friction = 0.0f;
+        boulderFixture = boulderBody.createFixture(boulderFixtureDef);
+        boulderBody.setUserData(this);
+        boulderBody.setLinearVelocity(velocityX, 0);
+    }
+
     public Vector2 getPosition() {
         return position;
     }
@@ -62,10 +82,21 @@ public class Boulder {
         return bounds;
     }
 
+    public Float getBodyLinearVelocityX() {
+        return boulderBody.getLinearVelocity().x;
+    }
+
     public void reposition(float x, float y) {
         position.set(x, y);
         boulderBody.setTransform(new Vector2((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS), 0);
         boulderBody.setLinearVelocity(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
+        bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
+    }
+
+    public void reposition(float x, float y, float velocity) {
+        position.set(x, y);
+        boulderBody.setTransform(new Vector2((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS), 0);
+        boulderBody.setLinearVelocity(velocity, 0);
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 

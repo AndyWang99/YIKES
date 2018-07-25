@@ -18,6 +18,7 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.sodirea.yikes.Yikes;
 import com.sodirea.yikes.sprites.Ball;
+import com.sodirea.yikes.sprites.Boulder;
 import com.sodirea.yikes.sprites.Platform;
 
 import org.json.JSONArray;
@@ -25,6 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Random;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -38,8 +40,8 @@ import static com.sodirea.yikes.states.PlayState.TIME_STEP;
 
 public class MultiplayerState extends State {
 
-    private final float UPDATE_TIME = 1/60f;
-    float timer;
+    private final float UPDATE_TIME = 1/300f;
+    private float timer;
     private Socket socket;
     private Texture bg;
     private Texture ground;
@@ -54,6 +56,12 @@ public class MultiplayerState extends State {
     private boolean needsPlatforms;
     private int toRepositionIndex;
     private boolean giveServerPositionCoordinates;
+    private Array<Boulder> boulderArray;
+    private Array<Float> boulderVelocityArray;
+    private Array<Vector2> boulderPositionArray;
+    private Random boulderGenerator;
+    private boolean needsBoulders;
+    private boolean toRepositionBoulder;
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
@@ -86,6 +94,12 @@ public class MultiplayerState extends State {
         needsPlatforms = true;
         toRepositionIndex = -1; // if it is not -1, then a platform needs to be repositioned
         giveServerPositionCoordinates = false;
+        boulderArray = new Array<Boulder>();
+        boulderVelocityArray = new Array<Float>();
+        boulderPositionArray = new Array<Vector2>();
+        boulderGenerator = new Random();
+        needsBoulders = true;
+        toRepositionBoulder = false;
         cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
 
         Box2D.init();
@@ -196,18 +210,31 @@ public class MultiplayerState extends State {
                 Gdx.app.log("SOCKET.IO", "Error sending update data");
             }
             if (needsPlatforms) {
-                for (int i = 0; i < platformPositionArray.size; i++) { // constantly updates platformArray with new coordinates from position and width arrays (if they are updated/repositioned by the server)
+                for (int i = 0; i < platformPositionArray.size; i++) {
                     Vector2 position = platformPositionArray.get(i);
                     Integer width = platformWidthArray.get(i);
                     platformArray.add(new Platform(position.x, position.y, width, world));
                 }
                 needsPlatforms = false;
             }
+            if (needsBoulders) {
+                for (int i = 0; i < boulderPositionArray.size; i++) {
+                    Vector2 position = boulderPositionArray.get(i);
+                    Float velocity = boulderVelocityArray.get(i);
+                    boulderArray.add(new Boulder(velocity, position.x, position.y, world));
+                }
+                needsBoulders = false;
+            }
         }
         if (toRepositionIndex != -1) {
             platformArray.get(toRepositionIndex).reposition(platformPositionArray.get(toRepositionIndex).x, platformPositionArray.get(toRepositionIndex).y, platformWidthArray.get(toRepositionIndex));
+            if (toRepositionBoulder) {
+                boulderArray.get(toRepositionIndex).reposition(boulderPositionArray.get(toRepositionIndex).x, boulderPositionArray.get(toRepositionIndex).y, boulderVelocityArray.get(toRepositionIndex));
+                toRepositionBoulder = false;
+            }
             toRepositionIndex = -1;
         }
+
         handleInput();
         if (playerConnected && player == null) {
             player = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
@@ -229,9 +256,27 @@ public class MultiplayerState extends State {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                    if (boulderGenerator.nextBoolean()) {
+                        boulderArray.get(i).reposition(platform.getPosition().x, platform.getPosition().y + platform.getTexture().getHeight());
+                        JSONObject repositionedBoulder = new JSONObject();
+                        try {
+                            repositionedBoulder.put("index", i);
+                            repositionedBoulder.put("x", boulderArray.get(i).getPosition().x);
+                            repositionedBoulder.put("y", boulderArray.get(i).getPosition().y);
+                            repositionedBoulder.put("velocity", boulderArray.get(i).getBodyLinearVelocityX());
+                            socket.emit("repositionBoulder", repositionedBoulder);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             }
         }
+
+        for (Boulder boulder: boulderArray) {
+            boulder.update(dt);
+        }
+
         for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the hashmap with list of ball players with the positions hashmap
             String id = entry.getKey();
             Vector2 position = otherPlayersPosition.get(id);
@@ -280,6 +325,9 @@ public class MultiplayerState extends State {
         }
         for (Platform platform : platformArray) {
             platform.render(sb);
+        }
+        for (Boulder boulder : boulderArray) {
+            boulder.render(sb);
         }
         sb.end();
     }
@@ -415,6 +463,39 @@ public class MultiplayerState extends State {
                     platformPositionArray.set(i, new Vector2(x, y));
                     platformWidthArray.set(i, width);
                     toRepositionIndex = i;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).on("getBoulders", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                JSONArray objects = (JSONArray) args[0];
+                try {
+                    for (int i = 0; i < objects.length(); i++) {
+                        Vector2 position = new Vector2();
+                        position.x = ((Double) objects.getJSONObject(i).getDouble("x")).floatValue();
+                        position.y = ((Double) objects.getJSONObject(i).getDouble("y")).floatValue();
+                        Float velocity = new Float(objects.getJSONObject(i).getInt("velocity"));
+                        boulderVelocityArray.add(velocity);
+                        boulderPositionArray.add(position);
+                    }
+                } catch (JSONException e) {
+
+                }
+            }
+        }).on("repositionBoulder", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                JSONObject repositionedBoulder = (JSONObject) args[0];
+                try {
+                    int i = repositionedBoulder.getInt("index");
+                    float x = ((Double) repositionedBoulder.getDouble("x")).floatValue();
+                    float y = ((Double) repositionedBoulder.getDouble("y")).floatValue();
+                    float velocity = ((Double) repositionedBoulder.getDouble("velocity")).floatValue();
+                    boulderPositionArray.set(i, new Vector2(x, y));
+                    boulderVelocityArray.set(i, velocity);
+                    toRepositionBoulder = true;
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }

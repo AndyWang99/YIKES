@@ -45,8 +45,8 @@ public class Ball {
         ballCircle.setRadius((ball.getWidth()/2) * PIXELS_TO_METERS);
         ballFixtureDef = new FixtureDef();
         ballFixtureDef.shape = ballCircle;
-        ballFixtureDef.density = 0.5f;
-        ballFixtureDef.friction = 0.4f;
+        ballFixtureDef.density = 500f;
+        ballFixtureDef.friction = 10f;
         ballFixture = ballBody.createFixture(ballFixtureDef);
 
         // adding a foot sensor for detecting if the ball could jump / is standing on something. NOTE: a separate body for the sensor is needed. if i only made a foot sensor fixture and attached it to ballBody, then the rotation of the ball would cause the foot sensor to also rotate, meaning the foot sensor would not always be beneath the ball
@@ -70,7 +70,7 @@ public class Ball {
         return position;
     }
 
-    public void setPosition(float x, float y) { // x, y are in rendering coordinates. changes the ballBody position, which then changes rendering position and bounds via the update method
+    public void setPosition(float x, float y) { // x, y are in rendering coordinates. changes the ballBody position, which then changes
         ballBody.setTransform(new Vector2((x+ball.getWidth()/2) * PIXELS_TO_METERS, (y+ball.getHeight()/2) * PIXELS_TO_METERS), ballBody.getAngle());
     }
 
