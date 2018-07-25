@@ -34,8 +34,7 @@ public class Yikes extends ApplicationAdapter {
 		Gdx.gl.glClearColor(1, 0, 0, 1);
 		sb = new SpriteBatch();
 		gsm = new GameStateManager();
-		//gsm.push(new MenuState(gsm));
-		gsm.push(new MultiplayerState(gsm));
+		gsm.push(new MenuState(gsm));
 
 		prefs = Gdx.app.getPreferences("Prefs");
 		prefs.putInteger("DOUBLE JUMP Score Requirements", 50);

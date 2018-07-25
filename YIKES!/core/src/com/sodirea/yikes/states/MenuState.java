@@ -147,6 +147,7 @@ public class MenuState extends State {
         wallFixtureDef2.density = 0.0f;
         wallFixtureDef2.friction = 0.0f;
         wallFixture2 = wallBody2.createFixture(wallFixtureDef2);
+
     }
 
     @Override
@@ -160,6 +161,11 @@ public class MenuState extends State {
                     && mousePos.y > cam.position.y - cam.viewportHeight/5
                     && mousePos.y < cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()) {
                 gsm.set(new ShopState(gsm));
+            } else if (mousePos.x > cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20
+                    && mousePos.x < cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20 + shopBtn.getWidth()
+                    && mousePos.y > cam.position.y - cam.viewportHeight/5
+                    && mousePos.y < cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()) {
+                gsm.set(new MultiplayerState(gsm));
             } else {
                 startScrollDown = true;
             }
@@ -242,6 +248,9 @@ public class MenuState extends State {
         squrave.draw(sb, Yikes.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
         squrave.getData().setScale(0.3f + timePassed/10, 0.3f + timePassed/10);
         squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 125, cam.position.y + cam.viewportHeight/20, 250, Align.center, false);
+        sb.draw(shopBtn, cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20, cam.position.y - cam.viewportHeight/5);
+        squrave.getData().setScale(0.5f, 0.5f);
+        squrave.draw(sb, "MULTI", cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20 + shopBtn.getWidth()/2, cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()/2 + shopBtn.getHeight()/5, 0, Align.center, false);
         sb.end();
     }
 

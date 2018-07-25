@@ -346,7 +346,7 @@ public class MultiplayerState extends State {
 
     public void connectSocket() {
         try {
-            socket = IO.socket("http://192.168.0.13:8080");
+            socket = IO.socket("https://blooming-reef-86477.herokuapp.com:5000");
             socket.connect();
         } catch(Exception e) {
             System.out.println(e);

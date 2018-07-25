@@ -13,7 +13,7 @@ var players = [];
 var platforms = [];
 var boulders = [];
 
-server.listen(8080, function(){
+server.listen(5000, function(){
 	console.log("Server is now running...");
     for (var i = 0; i < num_platforms; i++) {
          var width = min_hole_width + Math.random() * max_additional_hole_width;
