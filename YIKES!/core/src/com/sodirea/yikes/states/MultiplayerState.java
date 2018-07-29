@@ -1,6 +1,7 @@
 package com.sodirea.yikes.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
@@ -40,13 +41,16 @@ import static com.sodirea.yikes.states.PlayState.TIME_STEP;
 
 public class MultiplayerState extends State {
 
-    private final float UPDATE_TIME = 1/300f;
+    private final float UPDATE_TIME = 1/60f;
     private float timer;
+    private boolean resetState;
     private Socket socket;
     private Texture bg;
     private Texture ground;
     private Texture wall;
     private Texture ballTexture;
+    private Sound jump;
+    private Sound gameover;
     private float totalTimePassed;
     private boolean startCamera;
     private World world;
@@ -76,16 +80,21 @@ public class MultiplayerState extends State {
     private FixtureDef wallFixtureDef2;
     private Fixture wallFixture2;
     private Ball player;
+    private boolean playerIsDead;
     private boolean playerConnected;
     private HashMap<String, Ball> otherPlayers;
     private HashMap<String, Vector2> otherPlayersPosition;
 
     public MultiplayerState(GameStateManager gsm) {
         super(gsm);
+        resetState = false;
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
+        jump = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
+        gameover = Gdx.audio.newSound(Gdx.files.internal("gameover.wav"));
+        playerIsDead = false;
         totalTimePassed = 0;
         startCamera = false;
         platformArray = new Array<Platform>();
@@ -184,20 +193,26 @@ public class MultiplayerState extends State {
 
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched() && player != null && player.getNumberOfFootContacts() > 0) {
-            player.setBodyLinearVelocity(player.getBodyLinearVelocity().x, 50f);
-        }
-        float accelX = Gdx.input.getAccelerometerX();
-        if (accelX > 0 && player != null) {
-            player.setBodyLinearVelocity(-20f * accelX, player.getBodyLinearVelocity().y);
-        }
-        if (accelX < 0 && player != null) {
-            player.setBodyLinearVelocity(-20f * accelX, player.getBodyLinearVelocity().y);
+        if (!playerIsDead) {
+            if (Gdx.input.justTouched() && player != null && player.getNumberOfFootContacts() > 0) {
+                jump.play(1f);
+                player.setBodyLinearVelocity(player.getBodyLinearVelocity().x, 50f);
+            }
+            float accelX = Gdx.input.getAccelerometerX();
+            if (accelX > 0 && player != null) {
+                player.setBodyLinearVelocity(-20f * accelX, player.getBodyLinearVelocity().y);
+            }
+            if (accelX < 0 && player != null) {
+                player.setBodyLinearVelocity(-20f * accelX, player.getBodyLinearVelocity().y);
+            }
         }
     }
 
     @Override
     public void update(float dt) {
+        if (resetState) {
+            gsm.set(new MenuState(gsm));
+        }
         timer += dt;
         if (timer >= UPDATE_TIME && player != null) {
             timer = 0;
@@ -215,7 +230,9 @@ public class MultiplayerState extends State {
                     Integer width = platformWidthArray.get(i);
                     platformArray.add(new Platform(position.x, position.y, width, world));
                 }
-                needsPlatforms = false;
+                if (platformArray.size != 0) { // confirm that platforms have been added
+                    needsPlatforms = false;
+                }
             }
             if (needsBoulders) {
                 for (int i = 0; i < boulderPositionArray.size; i++) {
@@ -223,7 +240,9 @@ public class MultiplayerState extends State {
                     Float velocity = boulderVelocityArray.get(i);
                     boulderArray.add(new Boulder(velocity, position.x, position.y, world));
                 }
-                needsBoulders = false;
+                if (boulderArray.size != 0) {
+                    needsBoulders = false;
+                }
             }
         }
         if (toRepositionIndex != -1) {
@@ -305,7 +324,11 @@ public class MultiplayerState extends State {
 
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
-
+        if (player != null && !playerIsDead && cam.position.y - cam.viewportHeight / 2 > player.getPosition().y + player.getTexture().getHeight()) {
+            gameover.play(1f);
+            playerIsDead = true;
+            socket.emit("addToDeathCounter");
+        }
         world.step(TIME_STEP, 6, 2);
     }
 
@@ -339,6 +362,8 @@ public class MultiplayerState extends State {
         wall.dispose();
         player.dispose();
         ballTexture.dispose();
+        jump.dispose();
+        gameover.dispose();
         for (HashMap.Entry<String, Ball> entry : otherPlayers.entrySet()) {
             entry.getValue().dispose();
         }
@@ -346,7 +371,7 @@ public class MultiplayerState extends State {
 
     public void connectSocket() {
         try {
-            socket = IO.socket("https://blooming-reef-86477.herokuapp.com:5000");
+            socket = IO.socket("http://192.168.0.26:5000"); // https://blooming-reef-86477.herokuapp.com   http://192.168.0.26:5000
             socket.connect();
         } catch(Exception e) {
             System.out.println(e);
@@ -499,6 +524,12 @@ public class MultiplayerState extends State {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+            }
+        }).on("resetState", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                socket.disconnect();
+                resetState = true;
             }
         });
     }

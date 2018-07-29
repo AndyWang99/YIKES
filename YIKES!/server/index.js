@@ -12,8 +12,10 @@ var io = require('socket.io')(server);
 var players = [];
 var platforms = [];
 var boulders = [];
+var deathCounter = 0;
+var startCamera = false;
 
-server.listen(5000, function(){
+server.listen(process.env.PORT || 5000, function(){
 	console.log("Server is now running...");
     for (var i = 0; i < num_platforms; i++) {
          var width = min_hole_width + Math.random() * max_additional_hole_width;
@@ -41,6 +43,7 @@ io.on('connection', function(socket) {
     });
 
     socket.on('startCamera', function() {
+        startCamera = true;
         socket.broadcast.emit('startCamera', { start: true });
     });
 
@@ -58,6 +61,15 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('repositionBoulder', data);
     });
 
+    socket.on('addToDeathCounter', function() {
+        deathCounter++;
+        // everyone is dead, so reset the server
+        if (deathCounter == players.length) {
+            socket.emit('resetState');
+            socket.broadcast.emit('resetState');
+        }
+    });
+
 	socket.on('disconnect', function() {
 		console.log("Player Disconnected");
 		socket.broadcast.emit('playerDisconnected', { id: socket.id });
@@ -66,8 +78,24 @@ io.on('connection', function(socket) {
                 players.splice(i, 1);
             }
 		}
+		// if the last player has left, then reset the server
+		if (players.length == 0) {
+		    console.log("Resetting Server");
+            platforms = [];
+            boulders = [];
+            deathCounter = 0;
+            startCamera = false;
+            for (var i = 0; i < num_platforms; i++) {
+                var width = min_hole_width + Math.random() * max_additional_hole_width;
+                platforms.push(new platform(width, Math.random() * (yikes_width - width), ground_height + (i+1) * platform_interval));
+                boulders.push(new boulder(0, platform_interval * i, -100));
+            }
+		}
 	});
-	players.push(new player(socket.id, yikes_width/2, ground_height));
+	// don't add any new players to the array if the game is in progress. it would mess up death counter.
+	if (!startCamera) {
+	    players.push(new player(socket.id, yikes_width/2, ground_height));
+	}
 });
 
 function player(id, x, y) {
