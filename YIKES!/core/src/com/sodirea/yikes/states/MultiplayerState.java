@@ -41,9 +41,11 @@ import static com.sodirea.yikes.states.PlayState.TIME_STEP;
 
 public class MultiplayerState extends State {
 
-    private final float UPDATE_TIME = 1/60f;
+    private final float UPDATE_TIME = 1/20f;
     private float timer;
     private boolean resetState;
+    private Vector2 lastSentPosition;
+    private float displacementFromLastSentPosition;
     private Socket socket;
     private Texture bg;
     private Texture ground;
@@ -84,14 +86,17 @@ public class MultiplayerState extends State {
     private boolean playerConnected;
     private HashMap<String, Ball> otherPlayers;
     private HashMap<String, Vector2> otherPlayersPosition;
+    private HashMap<String, Vector2> otherPlayersVelocity;
 
     public MultiplayerState(GameStateManager gsm) {
         super(gsm);
         resetState = false;
+        displacementFromLastSentPosition = 0f;
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
+        lastSentPosition = new Vector2(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight());
         jump = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
         gameover = Gdx.audio.newSound(Gdx.files.internal("gameover.wav"));
         playerIsDead = false;
@@ -186,6 +191,7 @@ public class MultiplayerState extends State {
         playerConnected = false;
         otherPlayers = new HashMap<String, Ball>();
         otherPlayersPosition = new HashMap<String, Vector2>();
+        otherPlayersVelocity = new HashMap<String, Vector2>();
 
         connectSocket();
         configSocketEvents();
@@ -216,14 +222,36 @@ public class MultiplayerState extends State {
         timer += dt;
         if (timer >= UPDATE_TIME && player != null) {
             timer = 0;
-            JSONObject data = new JSONObject();
-            try {
-                data.put("x", player.getPosition().x);
-                data.put("y", player.getPosition().y);
-                socket.emit("playerUpdate", data);
-            } catch(JSONException e) {
-                Gdx.app.log("SOCKET.IO", "Error sending update data");
+            if (player != null) {
+                displacementFromLastSentPosition = (float) Math.sqrt(Math.pow(player.getPosition().x - lastSentPosition.x, 2) + Math.pow(player.getPosition().y - lastSentPosition.y, 2));
             }
+            if (displacementFromLastSentPosition >= 3f && player != null) {
+                displacementFromLastSentPosition = 0;
+                lastSentPosition.x = player.getPosition().x;
+                lastSentPosition.y = player.getPosition().y;
+                JSONObject data = new JSONObject();
+                try {
+                    data.put("x", player.getPosition().x);
+                    data.put("y", player.getPosition().y);
+                    data.put("velocityX", player.getBodyLinearVelocity().x);
+                    data.put("velocityY", player.getBodyLinearVelocity().y);
+                    socket.emit("playerUpdate", data);
+                } catch (JSONException e) {
+                    Gdx.app.log("SOCKET.IO", "Error sending update data");
+                }
+            }
+
+            for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the hashmap with list of ball players with the positions hashmap
+                String id = entry.getKey();
+                Vector2 position = otherPlayersPosition.get(id);
+                Vector2 velocity = otherPlayersVelocity.get(id);
+                if (!otherPlayers.containsKey(entry.getKey())) { // found an id in position array that isn't in the original array
+                    Ball otherPlayer = new Ball(position.x, position.y, world);
+                    otherPlayer.setBodyLinearVelocity(velocity.x, velocity.y);
+                    otherPlayers.put(id, otherPlayer);
+                }
+            }
+
             if (needsPlatforms) {
                 for (int i = 0; i < platformPositionArray.size; i++) {
                     Vector2 position = platformPositionArray.get(i);
@@ -296,17 +324,6 @@ public class MultiplayerState extends State {
             boulder.update(dt);
         }
 
-        for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the hashmap with list of ball players with the positions hashmap
-            String id = entry.getKey();
-            Vector2 position = otherPlayersPosition.get(id);
-            if (!otherPlayers.containsKey(entry.getKey())) { // found an id in position array that isn't in the original array
-                otherPlayers.put(id, new Ball(position.x, position.y, world));
-            } else { // if it already contains the id, then just update its ball's position
-                Ball otherPlayer = otherPlayers.get(id);
-                otherPlayer.setPosition(position.x, position.y);
-            }
-        }
-
         if (player != null) {
             player.update(dt);
         }
@@ -371,7 +388,7 @@ public class MultiplayerState extends State {
 
     public void connectSocket() {
         try {
-            socket = IO.socket("http://192.168.0.26:5000"); // https://blooming-reef-86477.herokuapp.com   http://192.168.0.26:5000
+            socket = IO.socket("https://blooming-reef-86477.herokuapp.com"); // https://blooming-reef-86477.herokuapp.com   http://192.168.0.26:5000
             socket.connect();
         } catch(Exception e) {
             System.out.println(e);
@@ -404,6 +421,7 @@ public class MultiplayerState extends State {
                     String id = data.getString("id");
                     Gdx.app.log("SocketIO", "New Player Connected: " + id);
                     otherPlayersPosition.put(id, new Vector2(200, 200));
+                    otherPlayersVelocity.put(id, new Vector2(0, 0));
                 } catch (JSONException e) {
                     Gdx.app.log("SocketIO", "Error getting new Player ID");
                 }
@@ -416,6 +434,7 @@ public class MultiplayerState extends State {
                     String id = data.getString("id");
                     otherPlayers.remove(id);
                     otherPlayersPosition.remove(id);
+                    otherPlayersVelocity.remove(id);
                 } catch (JSONException e) {
                     Gdx.app.log("SocketIO", "Error getting disconnected Player ID");
                 }
@@ -430,6 +449,7 @@ public class MultiplayerState extends State {
                         position.x = ((Double) objects.getJSONObject(i).getDouble("x")).floatValue();
                         position.y = ((Double) objects.getJSONObject(i).getDouble("y")).floatValue();
                         otherPlayersPosition.put(objects.getJSONObject(i).getString("id"), position);
+                        otherPlayersVelocity.put(objects.getJSONObject(i).getString("id"), new Vector2(0, 0));
                     }
                 } catch(JSONException e) {
 
@@ -443,8 +463,20 @@ public class MultiplayerState extends State {
                     String id = data.getString("id");
                     Double x = data.getDouble("x");
                     Double y = data.getDouble("y");
+                    Double velocityX = data.getDouble("velocityX");
+                    Double velocityY = data.getDouble("velocityY");
                     if (otherPlayersPosition.get(id) != null) {
                         otherPlayersPosition.put(id, new Vector2(x.floatValue(), y.floatValue()));
+                    }
+                    if (otherPlayersVelocity.get(id) != null) {
+                        otherPlayersVelocity.put(id, new Vector2(velocityX.floatValue(), velocityY.floatValue()));
+                    }
+                    Vector2 position = otherPlayersPosition.get(id);
+                    Vector2 velocity = otherPlayersVelocity.get(id);
+                    if (otherPlayers.containsKey(id)) { // if it already contains the id, then just update its ball's position
+                        Ball otherPlayer = otherPlayers.get(id);
+                        otherPlayer.setPosition(position.x, position.y);
+                        otherPlayer.setBodyLinearVelocity(velocity.x, velocity.y);
                     }
                 } catch (JSONException e) {
                     Gdx.app.log("SocketIO", "Error getting disconnected Player ID");

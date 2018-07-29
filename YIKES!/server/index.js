@@ -38,6 +38,8 @@ io.on('connection', function(socket) {
             if (players[i].id == data.id) {
                 players[i].x = data.x;
                 players[i].y = data.y;
+                players[i].velocityX = data.velocityX;
+                players[i].velocityY = data.velocityY;
             }
         }
     });
@@ -94,14 +96,16 @@ io.on('connection', function(socket) {
 	});
 	// don't add any new players to the array if the game is in progress. it would mess up death counter.
 	if (!startCamera) {
-	    players.push(new player(socket.id, yikes_width/2, ground_height));
+	    players.push(new player(socket.id, yikes_width/2, ground_height, 0, 0));
 	}
 });
 
-function player(id, x, y) {
+function player(id, x, y, velocityX, velocityY) {
     this.id = id;
     this.x = x;
     this.y = y;
+    this.velocityX = velocityX;
+    this.velocityY = velocityY;
 }
 
 function platform(width, x, y) {
