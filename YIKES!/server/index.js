@@ -17,6 +17,7 @@ var startCamera = false;
 
 server.listen(process.env.PORT || 5000, function(){
 	console.log("Server is now running...");
+	// when the server starts, initialize some platforms and boulders
     for (var i = 0; i < num_platforms; i++) {
          var width = min_hole_width + Math.random() * max_additional_hole_width;
          platforms.push(new platform(width, Math.random() * (yikes_width - width), ground_height + (i+1) * platform_interval));
@@ -27,10 +28,13 @@ server.listen(process.env.PORT || 5000, function(){
 io.on('connection', function(socket) {
 	console.log("Player Connected!");
 	socket.emit('socketID', { id: socket.id });
+	// when a player connects, give them all currently connected players, and the coordinates of existing platforms and boulders
 	socket.emit('getPlayers', players);
 	socket.emit('getPlatforms', platforms);
 	socket.emit('getBoulders', boulders);
+	// when a player connects, give all other players the new player's position and velocity
     socket.broadcast.emit('newPlayer', { id: socket.id});
+    // updating the position and velocity of a player on the server, and sending the same properties to all other players
     socket.on('playerUpdate', function(data) {
         data.id = socket.id;
         socket.broadcast.emit('playerUpdate', data);
@@ -44,26 +48,26 @@ io.on('connection', function(socket) {
         }
     });
 
-    socket.on('startCamera', function() {
+    socket.on('startCamera', function() { // start the camera for all players
         startCamera = true;
         socket.broadcast.emit('startCamera', { start: true });
     });
 
-    socket.on('repositionPlatform', function(data) {
+    socket.on('repositionPlatform', function(data) { // repositions platforms at a given index on the server
         platforms[data.index].x = data.x;
         platforms[data.index].y = data.y;
         platforms[data.index].width = data.width;
         socket.broadcast.emit('repositionPlatform', data);
     });
 
-    socket.on('repositionBoulder', function(data) {
+    socket.on('repositionBoulder', function(data) { // repositions boulders at a given index on the server
         boulders[data.index].x = data.x;
         boulders[data.index].y = data.y;
         boulders[data.index].velocity = data.velocity;
         socket.broadcast.emit('repositionBoulder', data);
     });
 
-    socket.on('addToDeathCounter', function() {
+    socket.on('addToDeathCounter', function() { // occurs when a player dies
         deathCounter++;
         // everyone is dead, so reset the server
         if (deathCounter == players.length) {
@@ -75,6 +79,7 @@ io.on('connection', function(socket) {
 	socket.on('disconnect', function() {
 		console.log("Player Disconnected");
 		socket.broadcast.emit('playerDisconnected', { id: socket.id });
+		// remove the player's properties from the server
 		for (var i = 0; i < players.length; i++) {
             if (players[i].id == socket.id) {
                 players.splice(i, 1);

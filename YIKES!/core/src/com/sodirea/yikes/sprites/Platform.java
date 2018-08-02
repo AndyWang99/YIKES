@@ -18,22 +18,25 @@ public class Platform {
 
     public static final int MIN_HOLE_WIDTH = 120;
     public static final int MAX_ADDITIONAL_HOLE_WIDTH = 60;
+
     private int holeWidth;
     private Random xGenerator;
     private Texture platform;
     private Vector2 position;
     private Rectangle bounds1;
     private Rectangle bounds2;
-    private boolean isCleared;
-    private boolean bridgePlaced;
+    private boolean isCleared; // true when the player's foot sensor contacts the platform
+    private boolean bridgePlaced; // true when the platform's hole is "bridged", i.e. has no hole (after they clear the platform)
 
     private BodyDef platformBodyDef;
     private Body platformBody;
     private PolygonShape platformBox;
+
     private BodyDef platformBodyDef2;
     private Body platformBody2;
     private PolygonShape platformBox2;
 
+    // creates a platform object at a position y with a random hole width and a random x position
     public Platform(float y, World world) {
         xGenerator = new Random();
         holeWidth = MIN_HOLE_WIDTH + xGenerator.nextInt(MAX_ADDITIONAL_HOLE_WIDTH);
@@ -44,6 +47,7 @@ public class Platform {
         isCleared = false;
         bridgePlaced = false;
 
+        // creating the physics body for the platform to the left of the hole
         platformBodyDef = new BodyDef();
         platformBodyDef.position.set((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
         platformBody = world.createBody(platformBodyDef);
@@ -52,6 +56,7 @@ public class Platform {
         platformBody.createFixture(platformBox, 0.0f);
         platformBody.setUserData(this);
 
+        // creating the physics body for the platform to the right of the hole
         platformBodyDef2 = new BodyDef();
         platformBodyDef2.position.set((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
         platformBody2 = world.createBody(platformBodyDef2);
@@ -63,6 +68,7 @@ public class Platform {
 
     }
 
+    // creates a platform object at the specified coordinates with the specified hole width
     public Platform(float x, float y, int width, World world) {
         xGenerator = new Random();
         holeWidth = width;
@@ -73,6 +79,7 @@ public class Platform {
         isCleared = false;
         bridgePlaced = false;
 
+        // creating the physics body for the platform to the left of the hole
         platformBodyDef = new BodyDef();
         platformBodyDef.position.set((position.x-platform.getWidth()/2)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
         platformBody = world.createBody(platformBodyDef);
@@ -81,6 +88,7 @@ public class Platform {
         platformBody.createFixture(platformBox, 0.0f);
         platformBody.setUserData(this);
 
+        // creating the physics body for the platform to the right of the hole
         platformBodyDef2 = new BodyDef();
         platformBodyDef2.position.set((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS);
         platformBody2 = world.createBody(platformBodyDef2);
@@ -96,13 +104,6 @@ public class Platform {
         return holeWidth;
     }
 
-    public Rectangle getBounds1() {
-        return bounds1;
-    }
-    public Rectangle getBounds2() {
-        return bounds2;
-    }
-
     public Vector2 getPosition() {
         return position;
     }
@@ -111,6 +112,7 @@ public class Platform {
         return platform;
     }
 
+    // repositions a platform to the specified y coordinate
     public void reposition(float y) {
         isCleared = false;
         bridgePlaced = false;
@@ -122,6 +124,7 @@ public class Platform {
         platformBody2.setTransform(new Vector2((position.x+platform.getWidth()/2+holeWidth)*PIXELS_TO_METERS, (position.y+platform.getHeight()/2)*PIXELS_TO_METERS), 0);
     }
 
+    // repositions a platform to the specified coordinates with the specified hole width
     public void reposition(float x, float y, int width) {
         isCleared = false;
         bridgePlaced = false;
@@ -144,12 +147,15 @@ public class Platform {
     public void update(float dt) {
         bounds1.setPosition(position.x - platform.getWidth(), position.y);
         bounds2.setPosition(position.x + holeWidth, position.y);
+        // when they clear the platform, close the hole
         if (isCleared) {
-            if (position.x < Yikes.WIDTH / 2 && position.x != -holeWidth) { // hole is closer to left, so move right platform over to left side
+            // visually closing the hole by modifying render coordinates
+            if (position.x < Yikes.WIDTH / 2 && position.x != -holeWidth) { // hole is closer to left, so move right platform over to left side to "bridge" the gap
                 position.x -= (position.x + holeWidth) / 10;
             } else if (position.x >= Yikes.WIDTH / 2 && position.x != Yikes.WIDTH) {
                 position.x += (Yikes.WIDTH - position.x) / 10;
             }
+            // closing the hole in the physics world by modifying the platform's physics body's coordinates
             if (!bridgePlaced) {
                 platformBody.setTransform(new Vector2(platformBody2.getPosition().x-platform.getWidth()*PIXELS_TO_METERS, (position.y + platform.getHeight() / 2) * PIXELS_TO_METERS), 0);
             }

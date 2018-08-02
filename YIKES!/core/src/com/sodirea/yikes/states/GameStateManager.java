@@ -8,6 +8,7 @@ public class GameStateManager {
 
     private Stack<State> states;
 
+    // creates a GameStateManager object, which uses a stack to keep track of active states, and display them as required
     public GameStateManager() {
         states = new Stack<State>();
     }
@@ -29,10 +30,12 @@ public class GameStateManager {
         return states.peek();
     }
 
+    // updates the top-most state in our stack
     public void update(float dt) {
         states.peek().update(dt);
     }
 
+    // renders the top-most state in our stack
     public void render(SpriteBatch sb) {
         states.peek().render(sb);
     }

@@ -20,21 +20,26 @@ public class Boulder {
 
     private static final int MIN_VELOCITY = 20;
     private static final int MAX_ADDITIONAL_VELOCITY = 10;
+
     private Texture wall;
     private Texture boulder;
     private Vector2 position;
     private Circle bounds;
+
     private BodyDef boulderBodyDef;
     private Body boulderBody;
     private CircleShape boulderCircle;
     private FixtureDef boulderFixtureDef;
     private Fixture boulderFixture;
 
+    // creates a boulder object with a random horizontal velocity at the specified coordinates
     public Boulder(float x, float y, World world) {
         wall = new Texture("wall.png");
         boulder = new Texture("boulder.png");
         position = new Vector2(x, y);
         bounds = new Circle(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2, boulder.getWidth() / 2);
+
+        // creating the boulder's physics body
         boulderBodyDef = new BodyDef();
         boulderBodyDef.type = BodyDef.BodyType.DynamicBody;
         boulderBodyDef.position.set((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics boulder coodinates
@@ -50,11 +55,14 @@ public class Boulder {
         boulderBody.setLinearVelocity(MIN_VELOCITY + new Random().nextInt(MAX_ADDITIONAL_VELOCITY), 0);
     }
 
+    // creates a boulder object with a specified horizontal velocity at the specified coordinates
     public Boulder(float velocityX, float x, float y, World world) {
         wall = new Texture("wall.png");
         boulder = new Texture("boulder.png");
         position = new Vector2(x, y);
         bounds = new Circle(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2, boulder.getWidth() / 2);
+
+        // creating the boulder's physics body
         boulderBodyDef = new BodyDef();
         boulderBodyDef.type = BodyDef.BodyType.DynamicBody;
         boulderBodyDef.position.set((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics boulder coodinates
@@ -74,18 +82,11 @@ public class Boulder {
         return position;
     }
 
-    public Texture getTexture(){
-        return boulder;
-    }
-
-    public Circle getBounds() {
-        return bounds;
-    }
-
     public Float getBodyLinearVelocityX() {
         return boulderBody.getLinearVelocity().x;
     }
 
+    // reposition the boulder to the specified coordinates with a random velocity
     public void reposition(float x, float y) {
         position.set(x, y);
         boulderBody.setTransform(new Vector2((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS), 0);
@@ -93,6 +94,7 @@ public class Boulder {
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 
+    // reposition the boulder to the specified coordinates with a specified velocity
     public void reposition(float x, float y, float velocity) {
         position.set(x, y);
         boulderBody.setTransform(new Vector2((position.x+boulder.getWidth()/2) * PIXELS_TO_METERS, (position.y+boulder.getHeight()/2) * PIXELS_TO_METERS), 0);
@@ -100,12 +102,13 @@ public class Boulder {
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);
     }
 
+
     public void update(float dt) {
-        position.set(boulderBody.getPosition().x/PIXELS_TO_METERS-boulder.getWidth()/2, boulderBody.getPosition().y/PIXELS_TO_METERS-boulder.getHeight()/2); // convert physics ball coordinates back to render/pixel coordinates
-        if (position.x <= wall.getWidth()+3) {
+        position.set(boulderBody.getPosition().x/PIXELS_TO_METERS-boulder.getWidth()/2, boulderBody.getPosition().y/PIXELS_TO_METERS-boulder.getHeight()/2); // convert physics body coordinates back to render coordinates. keeps the boulder's physics body coordinates in sync with the render coordinates
+        if (position.x <= wall.getWidth()+3) { // if the boulder's position hits the left wall, then make the boulder move into the opposite direction
             boulderBody.setLinearVelocity(-boulderBody.getLinearVelocity().x, boulderBody.getLinearVelocity().y);
         }
-        if (position.x + boulder.getWidth() >= Yikes.WIDTH - wall.getWidth()-3) {
+        if (position.x + boulder.getWidth() >= Yikes.WIDTH - wall.getWidth()-3) { // if the boulder's position hits the right wall, then make the boulder move into the opposite direction
             boulderBody.setLinearVelocity(-boulderBody.getLinearVelocity().x, boulderBody.getLinearVelocity().y);
         }
         bounds.setPosition(position.x + boulder.getWidth() / 2, position.y + boulder.getHeight() / 2);

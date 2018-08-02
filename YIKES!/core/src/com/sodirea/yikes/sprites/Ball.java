@@ -17,29 +17,35 @@ import static com.sodirea.yikes.states.PlayState.PIXELS_TO_METERS;
 public class Ball {
 
     public static final float SCALING_FACTOR = 0.17f;
+
     private Texture ball;
     private Vector2 position;
     private int numberOfFootContacts;
     private Circle bounds;
+
     private BodyDef ballBodyDef;
     private Body ballBody;
     private CircleShape ballCircle;
     private FixtureDef ballFixtureDef;
     private Fixture ballFixture;
+
     private BodyDef footBodyDef;
     private Body footBody;
     private PolygonShape footBox;
     private FixtureDef footFixtureDef;
     private Fixture footFixture;
 
+    // creates a ball object, which consists of a physics body, a foot sensor, and a render body, at the specified coordinates
     public Ball(float x, float y, World world) {
         ball = new Texture("ball.png");
         position = new Vector2(x, y);
         numberOfFootContacts = 0;
         bounds = new Circle(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2, ball.getWidth() / 2);
+
+        // creating the ball's physics body
         ballBodyDef = new BodyDef();
         ballBodyDef.type = BodyDef.BodyType.DynamicBody;
-        ballBodyDef.position.set((position.x+ball.getWidth()/2) * PIXELS_TO_METERS, (position.y+ball.getHeight()/2) * PIXELS_TO_METERS); // convert pixel coordinates to physics ball coodinates
+        ballBodyDef.position.set((position.x+ball.getWidth()/2) * PIXELS_TO_METERS, (position.y+ball.getHeight()/2) * PIXELS_TO_METERS); // convert render coordinates to physics body coodinates
         ballBody = world.createBody(ballBodyDef);
         ballCircle = new CircleShape();
         ballCircle.setRadius((ball.getWidth()/2) * PIXELS_TO_METERS);
@@ -70,7 +76,7 @@ public class Ball {
         return position;
     }
 
-    public void setPosition(float x, float y) { // x, y are in rendering coordinates. changes the ballBody position, which then changes
+    public void setPosition(float x, float y) { // x, y are in rendering coordinates. changes the ballBody position, which then changes the rendering position through the update() method
         ballBody.setTransform(new Vector2((x+ball.getWidth()/2) * PIXELS_TO_METERS, (y+ball.getHeight()/2) * PIXELS_TO_METERS), ballBody.getAngle());
     }
 
@@ -99,8 +105,8 @@ public class Ball {
     }
 
     public void update(float dt) {
-        position.set(ballBody.getPosition().x/PIXELS_TO_METERS-ball.getWidth()/2, ballBody.getPosition().y/PIXELS_TO_METERS-ball.getHeight()/2); // convert physics ball coordinates back to render/pixel coordinates
-        footBody.setTransform(new Vector2(ballBody.getPosition().x, ballBody.getPosition().y - ballCircle.getRadius() - ballCircle.getRadius()/8 - 2*PIXELS_TO_METERS), 0);
+        position.set(ballBody.getPosition().x/PIXELS_TO_METERS-ball.getWidth()/2, ballBody.getPosition().y/PIXELS_TO_METERS-ball.getHeight()/2); // convert physics body coordinates back to render coordinates. this ensures that the rendering position is always in sync with the physics body's position
+        footBody.setTransform(new Vector2(ballBody.getPosition().x, ballBody.getPosition().y - ballCircle.getRadius() - ballCircle.getRadius()/8 - 2*PIXELS_TO_METERS), 0); // update the foot sensor body's position to constantly be under the ball's body
         bounds.setPosition(position.x + ball.getWidth() / 2, position.y + ball.getHeight() / 2);
     }
 

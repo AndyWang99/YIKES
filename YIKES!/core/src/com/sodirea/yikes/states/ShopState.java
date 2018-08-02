@@ -49,7 +49,7 @@ public class ShopState extends State {
         btnTable = new Table();
         btnTable.align(Align.topLeft);
         scrollPane = new ScrollPane(btnTable);
-        scrollPane.setBounds(cam.position.x - cam.viewportWidth / 2 + 50, cam.position.y - cam.viewportWidth / 2  - cam.viewportWidth / 5, cam.viewportWidth - 100, cam.viewportHeight/2+cam.viewportHeight/4);
+        scrollPane.setBounds(cam.position.x - cam.viewportWidth / 2 + 50, cam.position.y - cam.viewportWidth / 2 - cam.viewportWidth / 5, cam.viewportWidth - 100, cam.viewportHeight / 2 + cam.viewportHeight / 4);
 
         stage.addActor(bg);
         stage.addActor(scrollPane);
@@ -62,6 +62,7 @@ public class ShopState extends State {
         initUnlock(doubleJump, "DOUBLE JUMP");
 
         for (ImageTextButton btn : unlocksArray) {
+            // check if they meet the requirements for an unlock
             if (prefs.getInteger("highscore", 0) >= prefs.getInteger(btn.getName() + " Score Requirements")) {
                 prefs.putBoolean(btn.getName(), true);
                 prefs.flush();
@@ -71,6 +72,8 @@ public class ShopState extends State {
                     btn.setText(btn.getName() + " - OFF");
                 }
             }
+
+            // if they click on an unlock button, then check if they have it unlocked. if they do, then toggle the unlock on or off
             btn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -105,6 +108,7 @@ public class ShopState extends State {
         if (Gdx.input.justTouched()) {
             Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
             cam.unproject(mousePos);
+            // if they click the back button, go back to menu state
             if (mousePos.x < 100 && mousePos.y > stage.getHeight() - 100) {
                 menuclick.play(1f);
                 gsm.set(new MenuState(gsm));
@@ -117,6 +121,7 @@ public class ShopState extends State {
         handleInput();
         for (ImageTextButton btn : unlocksArray) {
             if (!prefs.getBoolean(btn.getName(), false)) {
+                // if an unlock button is pressed and held while locked, display the requirements for unlocking
                 if (!btn.isPressed()) {
                     btn.setText(btn.getName() + " - LOCKED");
                 } else {
@@ -132,9 +137,9 @@ public class ShopState extends State {
         stage.draw();
         sb.begin();
         squrave.getData().setScale(1f, 1f);
-        squrave.draw(sb, "SHOP", cam.position.x, cam.position.y + cam.viewportHeight/2 - cam.viewportHeight/25, 0, Align.center, false);
+        squrave.draw(sb, "SHOP", cam.position.x, cam.position.y + cam.viewportHeight / 2 - cam.viewportHeight / 25, 0, Align.center, false);
         squrave.getData().setScale(0.3f, 0.3f);
-        squrave.draw(sb, "BACK", cam.position.x - cam.viewportWidth/2, cam.position.y + cam.viewportHeight/2 - cam.viewportHeight/25, 0, Align.left, false);
+        squrave.draw(sb, "BACK", cam.position.x - cam.viewportWidth / 2, cam.position.y + cam.viewportHeight / 2 - cam.viewportHeight / 25, 0, Align.left, false);
         sb.end();
     }
 
@@ -148,6 +153,7 @@ public class ShopState extends State {
     public void initUnlock(ImageTextButton btn, String key) {
         btn.setName(key);
         btn.getLabel().setName(key);
+        // determine what text to display on the unlock button depending on whether the unlock is unlocked
         if (!prefs.getBoolean(key, false)) {
             btn.setText(btn.getName() + " - LOCKED");
         } else {
@@ -157,6 +163,7 @@ public class ShopState extends State {
                 btn.setText(btn.getName() + " - OFF");
             }
         }
+        // add the unlock button the unlocks array and the table
         unlocksArray.add(btn);
         btnTable.add(btn);
     }

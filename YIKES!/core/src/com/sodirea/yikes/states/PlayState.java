@@ -34,40 +34,31 @@ public class PlayState extends State {
     public static final float PIXELS_TO_METERS = 0.01f;
     public static final int GRAVITY = -500;
     public static final float TIME_STEP = 1 / 300f;
+
     private Texture bg;
     private Texture ground;
     private Texture wall;
     private Texture ballTexture;
+    private Texture deathscreen;
     private Ball ball;
     private Sound jump;
     private Sound gameover;
     private Sound menuclick;
-    private Texture deathscreen;
+    private BitmapFont squrave;
+    private Preferences prefs;
+
     private boolean dead;
     private Vector2 deathscreenPos;
     private int score;
-    private Preferences prefs;
     private int airJumpsRemaining;
-    private BitmapFont squrave;
-    private Platform platform1;
-    private Platform platform2;
-    private Platform platform3;
-    private Platform platform4;
-    private Platform platform5;
-    private Platform platform6;
+    private float totalTimePassed;
+    private boolean startCamera;
+
     private Array<Platform> platformArray;
     private float lastPlatformTouchedPositionY;
-    private Boulder boulder1;
-    private Boulder boulder2;
-    private Boulder boulder3;
-    private Boulder boulder4;
-    private Boulder boulder5;
-    private Boulder boulder6;
     private Array<Boulder> boulderArray;
     private Random boulderGenerator;
 
-    private float totalTimePassed;
-    private boolean startCamera;
     private World world;
     private BodyDef groundBodyDef;
     private Body groundBody;
@@ -90,7 +81,8 @@ public class PlayState extends State {
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
-                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) { // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                if (contact.getFixtureA().getBody().getUserData() instanceof Ball || contact.getFixtureB().getBody().getUserData() instanceof Ball) {
                     ball.addNumberOfFootContacts(); // add to the total number of contact points
                     Platform platform = null;
                     if (contact.getFixtureA().getBody().getUserData() instanceof Platform) {
@@ -128,56 +120,39 @@ public class PlayState extends State {
             public void postSolve(Contact contact, ContactImpulse impulse) {
             }
         });
-        startCamera = false;
         cam.setToOrtho(false, Yikes.WIDTH, Yikes.HEIGHT);
+
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
+        deathscreen = new Texture("deathscreen.png");
         ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         jump = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
         gameover = Gdx.audio.newSound(Gdx.files.internal("gameover.wav"));
         menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
+        squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
+
+        startCamera = false;
         dead = false;
-        deathscreen = new Texture("deathscreen.png");
         deathscreenPos = new Vector2(cam.position.x - cam.viewportWidth/2 - deathscreen.getWidth(), cam.position.y);
         score = 0;
-        squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
+        totalTimePassed = 0;
         prefs = Gdx.app.getPreferences("Prefs");
-        if (prefs.getBoolean("doublejump Toggle", false)) {
+        if (prefs.getBoolean("doublejump Toggle", false)) { // if they own double jump, give them an air jump
             airJumpsRemaining = 1;
         } else {
             airJumpsRemaining = 0;
         }
-        platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
-        platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
-        platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
-        platform4 = new Platform(ground.getHeight() + 4 * PLATFORM_INTERVALS, world);
-        platform5 = new Platform(ground.getHeight() + 5 * PLATFORM_INTERVALS, world);
-        platform6 = new Platform(ground.getHeight() + 6 * PLATFORM_INTERVALS, world);
+
         platformArray = new Array<Platform>();
-        platformArray.add(platform1);
-        platformArray.add(platform2);
-        platformArray.add(platform3);
-        platformArray.add(platform4);
-        platformArray.add(platform5);
-        platformArray.add(platform6);
-        lastPlatformTouchedPositionY = 0;
-        boulder1 = new Boulder(PLATFORM_INTERVALS, -100, world);
-        boulder2 = new Boulder(2 * PLATFORM_INTERVALS, -100, world);
-        boulder3 = new Boulder(3 * PLATFORM_INTERVALS, -100, world);
-        boulder4 = new Boulder(4 * PLATFORM_INTERVALS, -100, world);
-        boulder5 = new Boulder(5 * PLATFORM_INTERVALS, -100, world);
-        boulder6 = new Boulder(6 * PLATFORM_INTERVALS, -100, world);
         boulderArray = new Array<Boulder>();
-        boulderArray.add(boulder1);
-        boulderArray.add(boulder2);
-        boulderArray.add(boulder3);
-        boulderArray.add(boulder4);
-        boulderArray.add(boulder5);
-        boulderArray.add(boulder6);
+        // initializing the two arrays with platforms and boulders
+        for (int i = 1; i <= NUM_PLATFORMS; i++) {
+            platformArray.add(new Platform(ground.getHeight() + i * PLATFORM_INTERVALS, world));
+            boulderArray.add(new Boulder(i * PLATFORM_INTERVALS, -100, world));
+        }
         boulderGenerator = new Random();
-        totalTimePassed = 0;
 
         groundBodyDef = new BodyDef();
         groundBodyDef.position.set(ground.getWidth() / 2 * PIXELS_TO_METERS, ground.getHeight() / 2 * PIXELS_TO_METERS);
@@ -212,18 +187,21 @@ public class PlayState extends State {
     @Override
     protected void handleInput() {
         if (!dead) {
+            // if they touch the screen and the foot sensor is in contact with something other than the ball, then jump
             if (Gdx.input.justTouched() && ball.getNumberOfFootContacts() > 0) {
                 ball.setBodyLinearVelocity(ball.getBodyLinearVelocity().x, 50f);
+                // if they own double jump and their foot sensor is in contact with something, then give them their air jumps back
                 if (prefs.getBoolean("DOUBLE JUMP Toggle", false)) {
                     airJumpsRemaining = 1;
                 }
                 jump.play(1f);
+            // if their foot sensor is not in contact with anything, but they have air jumps, then jump
             } else if (Gdx.input.justTouched() && ball.getNumberOfFootContacts() == 0 && airJumpsRemaining > 0) {
                 ball.setBodyLinearVelocity(ball.getBodyLinearVelocity().x, 50f);
                 airJumpsRemaining--;
                 jump.play(1f);
             }
-        } else {
+        } else { // if they are dead, then pressing on the screen take sthem back to the menu state
             if (Gdx.input.justTouched()) {
                 menuclick.play(1f);
                 if (deathscreenPos.x+deathscreen.getWidth()/2 < cam.position.x) {
@@ -233,6 +211,7 @@ public class PlayState extends State {
                 }
             }
         }
+        // player's horizontal movements are controlled by tilting the screen
         float accelX = Gdx.input.getAccelerometerX();
         if (accelX > 0) {
             ball.setBodyLinearVelocity(-20f * accelX, ball.getBodyLinearVelocity().y);
@@ -246,6 +225,7 @@ public class PlayState extends State {
     public void update(float dt) {
         handleInput();
         if (dead) {
+            // controls the animation for sliding the death screen from the left side of the screen
             if (deathscreenPos.x+deathscreen.getWidth()/2 < cam.position.x) {
                 deathscreenPos.x += (cam.position.x - deathscreenPos.x+deathscreen.getWidth()/2) / 50;
             }
@@ -260,13 +240,16 @@ public class PlayState extends State {
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
             platform.update(dt);
+            // if a platform falls below the screen, then reposition the platform by putting it above the screen
             if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
                 platform.reposition(platform.getPosition().y + PLATFORM_INTERVALS * NUM_PLATFORMS);
+                // 50% chance to also reposition a boulder with the newly repositioned platform
                 if (boulderGenerator.nextBoolean()) {
                     boulderArray.get(i).reposition(platform.getPosition().x, platform.getPosition().y + platform.getTexture().getHeight());
                 }
             }
         }
+        // if startCamera is true, then start scrolling upwards, while scaling the scroll speed with time
         if (startCamera) {
             if (totalTimePassed < 60) {
                 totalTimePassed += dt;
@@ -274,7 +257,9 @@ public class PlayState extends State {
             cam.position.y += 4 * Ball.SCALING_FACTOR * (Math.pow(1.02, totalTimePassed) + 2);
             cam.update();
         }
+        // checks if the ball fell under the screen, i.e. game over
         if (cam.position.y - cam.viewportHeight / 2 > ball.getPosition().y + ball.getTexture().getHeight() && !dead) {
+            // if their score this time is greater than this high score in preferences, then put a new high score
             if (prefs.getInteger("highscore", 0) < score) {
                 prefs.putInteger("highscore", score);
                 prefs.flush();
@@ -327,18 +312,6 @@ public class PlayState extends State {
         menuclick.dispose();
         deathscreen.dispose();
         squrave.dispose();
-        platform1.dispose();
-        platform2.dispose();
-        platform3.dispose();
-        platform4.dispose();
-        platform5.dispose();
-        platform6.dispose();
-        boulder1.dispose();
-        boulder2.dispose();
-        boulder3.dispose();
-        boulder4.dispose();
-        boulder5.dispose();
-        boulder6.dispose();
         groundBox.dispose();
         wallBox.dispose();
         wallBox2.dispose();

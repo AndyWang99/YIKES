@@ -35,39 +35,32 @@ public class MenuState extends State {
     private Texture ground;
     private Texture wall;
     private Texture ballTexture;
-    private Ball ball;
-    private Sound menuclick;
     private Texture shopBtn;
     private BitmapFont squrave;
-    private Platform platform1;
-    private Platform platform2;
-    private Platform platform3;
-    private Platform platform4;
-    private Platform platform5;
-    private Platform platform6;
-    private Array<Platform> platformArray;
-    private Boulder boulder1;
-    private Boulder boulder2;
-    private Boulder boulder3;
-    private Boulder boulder4;
-    private Boulder boulder5;
-    private Boulder boulder6;
-    private Array<Boulder> boulderArray;
-    private Random boulderGenerator;
+    private Sound menuclick;
+
     private Boolean startScrollDown;
     private Boolean setCamY;
     private float timePassed;
     private boolean addToSize;
 
+    private Ball ball;
+    private Array<Platform> platformArray;
+    private Array<Boulder> boulderArray;
+    private Random boulderGenerator;
+
     private World world;
+
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
+
     private BodyDef wallBodyDef;
     private Body wallBody;
     private PolygonShape wallBox;
     private FixtureDef wallFixtureDef;
     private Fixture wallFixture;
+
     private BodyDef wallBodyDef2;
     private Body wallBody2;
     private PolygonShape wallBox2;
@@ -80,43 +73,26 @@ public class MenuState extends State {
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
+        ballTexture = new Texture("ball.png");
+        shopBtn = new Texture("shopbtn.png");
         menuclick = Gdx.audio.newSound(Gdx.files.internal("menuclick.wav"));
         squrave = new BitmapFont(Gdx.files.internal("squrave.fnt"), false);
-        Box2D.init();
-        world = new World(new Vector2(0, GRAVITY), true);
-        ballTexture = new Texture("ball.png");
-        ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
-        shopBtn = new Texture("shopbtn.png");
+
         startScrollDown = false;
         setCamY = false;
         timePassed = 0;
         addToSize = true;
-        platform1 = new Platform(ground.getHeight() + PLATFORM_INTERVALS, world);
-        platform2 = new Platform(ground.getHeight() + 2 * PLATFORM_INTERVALS, world);
-        platform3 = new Platform(ground.getHeight() + 3 * PLATFORM_INTERVALS, world);
-        platform4 = new Platform(ground.getHeight() + 4 * PLATFORM_INTERVALS, world);
-        platform5 = new Platform(ground.getHeight() + 5 * PLATFORM_INTERVALS, world);
-        platform6 = new Platform(ground.getHeight() + 6 * PLATFORM_INTERVALS, world);
+
+        Box2D.init();
+        world = new World(new Vector2(0, GRAVITY), true);
+        ball = new Ball(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight(), world);
         platformArray = new Array<Platform>();
-        platformArray.add(platform1);
-        platformArray.add(platform2);
-        platformArray.add(platform3);
-        platformArray.add(platform4);
-        platformArray.add(platform5);
-        platformArray.add(platform6);
-        boulder1 = new Boulder(PLATFORM_INTERVALS, -100, world);
-        boulder2 = new Boulder(2 * PLATFORM_INTERVALS, -100, world);
-        boulder3 = new Boulder(3 * PLATFORM_INTERVALS, -100, world);
-        boulder4 = new Boulder(4 * PLATFORM_INTERVALS, -100, world);
-        boulder5 = new Boulder(5 * PLATFORM_INTERVALS, -100, world);
-        boulder6 = new Boulder(6 * PLATFORM_INTERVALS, -100, world);
         boulderArray = new Array<Boulder>();
-        boulderArray.add(boulder1);
-        boulderArray.add(boulder2);
-        boulderArray.add(boulder3);
-        boulderArray.add(boulder4);
-        boulderArray.add(boulder5);
-        boulderArray.add(boulder6);
+        // initializing the two arrays with platforms and boulders
+        for (int i = 1; i <= NUM_PLATFORMS; i++) {
+            platformArray.add(new Platform(ground.getHeight() + i * PLATFORM_INTERVALS, world));
+            boulderArray.add(new Boulder(i * PLATFORM_INTERVALS, -100, world));
+        }
         boulderGenerator = new Random();
 
         groundBodyDef = new BodyDef();
@@ -156,16 +132,19 @@ public class MenuState extends State {
             menuclick.play(1f);
             Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
             cam.unproject(mousePos);
+            // if they click the shop button, then go to the shop state
             if (mousePos.x > cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth()
                     && mousePos.x < cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20
                     && mousePos.y > cam.position.y - cam.viewportHeight/5
                     && mousePos.y < cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()) {
                 gsm.set(new ShopState(gsm));
+            // if they click the multi button, then go to the multiplayer state
             } else if (mousePos.x > cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20
                     && mousePos.x < cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20 + shopBtn.getWidth()
                     && mousePos.y > cam.position.y - cam.viewportHeight/5
                     && mousePos.y < cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()) {
                 gsm.set(new MultiplayerState(gsm));
+            // if they click anywhere else, then play the scroll down animation
             } else {
                 startScrollDown = true;
             }
@@ -174,11 +153,13 @@ public class MenuState extends State {
 
     @Override
     public void update(float dt) {
+        // when the menu state is created, set the camera's y position to 5000 for the scroll down animation
         if (!setCamY) {
             cam.position.y = 5000;
             setCamY = true;
         }
         handleInput();
+        // setting the position of the wall bodies to constantly move along with the camera on every update
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
         for (Boulder boulder: boulderArray) {
@@ -187,6 +168,7 @@ public class MenuState extends State {
         for (int i = 0; i < platformArray.size; i++) {
             Platform platform = platformArray.get(i);
             platform.update(dt);
+            // if they haven't clicked on the screen to start the scroll down animation yet, then keep checking if platforms should reposition upwards
             if (!startScrollDown) {
                 if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
                     platform.reposition(platform.getPosition().y + PLATFORM_INTERVALS * NUM_PLATFORMS);
@@ -194,6 +176,7 @@ public class MenuState extends State {
                         boulderArray.get(i).reposition(platform.getPosition().x, platform.getPosition().y + platform.getTexture().getHeight());
                     }
                 }
+            // if they have, then keep checking if platforms should be repositioned downwards
             } else {
                 if (platform.getPosition().y > cam.position.y + cam.viewportHeight / 2 && platform.getPosition().y - PLATFORM_INTERVALS * NUM_PLATFORMS >= ground.getHeight() + PLATFORM_INTERVALS) {
                     platform.reposition(platform.getPosition().y - PLATFORM_INTERVALS * NUM_PLATFORMS);
@@ -203,9 +186,11 @@ public class MenuState extends State {
                 }
             }
         }
+        // if the time passed exceeds 0.5f, then stop adding to the "tap to play"'s text size, and start decreasing
         if (timePassed > 0.5f) {
             addToSize = false;
         }
+        // if the time passed is less than 0, then stop decreasing text size and start increasing
         if (timePassed < 0) {
             addToSize = true;
         }
@@ -214,10 +199,13 @@ public class MenuState extends State {
         } else {
             timePassed -= dt;
         }
+        // scroll up if they haven't clicked the screen yet
         if (!startScrollDown) {
             cam.position.y += 24 * Ball.SCALING_FACTOR;
+        // if they have, then start scrolling down
         } else {
             cam.position.y -= cam.position.y / 40;
+            // once we scroll all the way back to the ground, enter the play state
             if (cam.position.y - cam.viewportHeight / 2 <= 0) {
                 gsm.set(new PlayState(gsm));
             }
@@ -233,21 +221,27 @@ public class MenuState extends State {
         sb.draw(bg, 0, cam.position.y - cam.viewportHeight / 2);
         sb.draw(ground, 0, 0);
         sb.draw(wall, 0, cam.position.y - cam.viewportHeight / 2);
-        ball.render(sb);
         sb.draw(wall, cam.position.x + cam.viewportWidth / 2 - wall.getWidth(), cam.position.y - cam.viewportHeight / 2);
+        ball.render(sb);
+
         for (Platform platform : platformArray) {
             platform.render(sb);
         }
+
         for (Boulder boulder : boulderArray) {
             boulder.render(sb);
         }
+
         sb.draw(shopBtn, cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth(), cam.position.y - cam.viewportHeight/5);
         squrave.getData().setScale(0.55f, 0.55f);
         squrave.draw(sb, "SHOP", cam.position.x + cam.viewportWidth/3 + cam.viewportWidth/20 - shopBtn.getWidth()/2, cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()/2 + shopBtn.getHeight()/5, 0, Align.center, false);
+
         squrave.getData().setScale(1f, 1f);
         squrave.draw(sb, Yikes.TITLE, cam.position.x - 200, cam.position.y + cam.viewportHeight/3, 400, Align.center, true);
+
         squrave.getData().setScale(0.3f + timePassed/10, 0.3f + timePassed/10);
         squrave.draw(sb, "TAP TO PLAY!", cam.position.x - 125, cam.position.y + cam.viewportHeight/20, 250, Align.center, false);
+
         sb.draw(shopBtn, cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20, cam.position.y - cam.viewportHeight/5);
         squrave.getData().setScale(0.5f, 0.5f);
         squrave.draw(sb, "MULTI", cam.position.x - cam.viewportWidth/3 - cam.viewportWidth/20 + shopBtn.getWidth()/2, cam.position.y - cam.viewportHeight/5 + shopBtn.getHeight()/2 + shopBtn.getHeight()/5, 0, Align.center, false);
@@ -264,18 +258,6 @@ public class MenuState extends State {
         menuclick.dispose();
         shopBtn.dispose();
         squrave.dispose();
-        platform1.dispose();
-        platform2.dispose();
-        platform3.dispose();
-        platform4.dispose();
-        platform5.dispose();
-        platform6.dispose();
-        boulder1.dispose();
-        boulder2.dispose();
-        boulder3.dispose();
-        boulder4.dispose();
-        boulder5.dispose();
-        boulder6.dispose();
         groundBox.dispose();
         wallBox.dispose();
         wallBox2.dispose();

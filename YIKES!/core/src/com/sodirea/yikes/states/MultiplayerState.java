@@ -43,10 +43,8 @@ public class MultiplayerState extends State {
 
     private final float UPDATE_TIME = 1/20f;
     private float timer;
-    private boolean resetState;
-    private Vector2 lastSentPosition;
-    private float displacementFromLastSentPosition;
     private Socket socket;
+
     private Texture bg;
     private Texture ground;
     private Texture wall;
@@ -55,32 +53,42 @@ public class MultiplayerState extends State {
     private Sound gameover;
     private float totalTimePassed;
     private boolean startCamera;
-    private World world;
+    private boolean resetState;
+    private Vector2 lastSentPosition;
+    private float displacementFromLastSentPosition;
+
     private Array<Platform> platformArray;
     private Array<Vector2> platformPositionArray;
     private Array<Integer> platformWidthArray;
     private boolean needsPlatforms;
     private int toRepositionIndex;
     private boolean giveServerPositionCoordinates;
+
     private Array<Boulder> boulderArray;
     private Array<Float> boulderVelocityArray;
     private Array<Vector2> boulderPositionArray;
     private Random boulderGenerator;
     private boolean needsBoulders;
     private boolean toRepositionBoulder;
+
+    private World world;
+
     private BodyDef groundBodyDef;
     private Body groundBody;
     private PolygonShape groundBox;
+
     private BodyDef wallBodyDef;
     private Body wallBody;
     private PolygonShape wallBox;
     private FixtureDef wallFixtureDef;
     private Fixture wallFixture;
+
     private BodyDef wallBodyDef2;
     private Body wallBody2;
     private PolygonShape wallBox2;
     private FixtureDef wallFixtureDef2;
     private Fixture wallFixture2;
+
     private Ball player;
     private boolean playerIsDead;
     private boolean playerConnected;
@@ -90,24 +98,27 @@ public class MultiplayerState extends State {
 
     public MultiplayerState(GameStateManager gsm) {
         super(gsm);
-        resetState = false;
-        displacementFromLastSentPosition = 0f;
         bg = new Texture("bg.png");
         ground = new Texture("ground.png");
         wall = new Texture("wall.png");
         ballTexture = new Texture("ball.png");
-        lastSentPosition = new Vector2(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight());
         jump = Gdx.audio.newSound(Gdx.files.internal("jump.mp3"));
         gameover = Gdx.audio.newSound(Gdx.files.internal("gameover.wav"));
+
+        resetState = false;
+        displacementFromLastSentPosition = 0f;
+        lastSentPosition = new Vector2(cam.position.x - ballTexture.getWidth() / 2, ground.getHeight());
         playerIsDead = false;
         totalTimePassed = 0;
         startCamera = false;
+
         platformArray = new Array<Platform>();
         platformPositionArray = new Array<Vector2>();
         platformWidthArray = new Array<Integer>();
         needsPlatforms = true;
         toRepositionIndex = -1; // if it is not -1, then a platform needs to be repositioned
         giveServerPositionCoordinates = false;
+
         boulderArray = new Array<Boulder>();
         boulderVelocityArray = new Array<Float>();
         boulderPositionArray = new Array<Vector2>();
@@ -122,7 +133,8 @@ public class MultiplayerState extends State {
             @Override
             public void beginContact(Contact contact) {
                 if (contact.getFixtureA().getBody() != null && contact.getFixtureB().getBody().getUserData() != null) {
-                    if (contact.getFixtureA().getBody().getUserData() == player || contact.getFixtureB().getBody().getUserData() == player) { // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                    // if the foot sensor fixture of the ball touches a platform, and the lowest point of the ball is higher than the highest point of the touched platform, then clear the platform
+                    if (contact.getFixtureA().getBody().getUserData() == player || contact.getFixtureB().getBody().getUserData() == player) {
                         player.addNumberOfFootContacts(); // add to the total number of contact points
                         Platform platform = null;
                         if (contact.getFixtureA().getBody().getUserData() instanceof Platform) {
@@ -200,10 +212,12 @@ public class MultiplayerState extends State {
     @Override
     protected void handleInput() {
         if (!playerIsDead) {
+            // if there is more than one contact point, and the player touches the screen, then jump
             if (Gdx.input.justTouched() && player != null && player.getNumberOfFootContacts() > 0) {
                 jump.play(1f);
                 player.setBodyLinearVelocity(player.getBodyLinearVelocity().x, 50f);
             }
+            // controlling the player's horizontal movement by tilting the screen
             float accelX = Gdx.input.getAccelerometerX();
             if (accelX > 0 && player != null) {
                 player.setBodyLinearVelocity(-20f * accelX, player.getBodyLinearVelocity().y);
@@ -220,11 +234,14 @@ public class MultiplayerState extends State {
             gsm.set(new MenuState(gsm));
         }
         timer += dt;
+        // if the timer exceeds UPDATE_TIME, then communicate with the server
         if (timer >= UPDATE_TIME && player != null) {
             timer = 0;
+            // update the displacement variable by taking the client's current position and comparing it with the server's position of the player
             if (player != null) {
                 displacementFromLastSentPosition = (float) Math.sqrt(Math.pow(player.getPosition().x - lastSentPosition.x, 2) + Math.pow(player.getPosition().y - lastSentPosition.y, 2));
             }
+            // if the displacement exceeds 3f, then send the player's current position and velocity to the server
             if (displacementFromLastSentPosition >= 3f && player != null) {
                 displacementFromLastSentPosition = 0;
                 lastSentPosition.x = player.getPosition().x;
@@ -241,17 +258,18 @@ public class MultiplayerState extends State {
                 }
             }
 
-            for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the hashmap with list of ball players with the positions hashmap
+            for (HashMap.Entry<String, Vector2> entry : otherPlayersPosition.entrySet()) { // updating the ball hashmap with the position and velocity hashmaps
                 String id = entry.getKey();
                 Vector2 position = otherPlayersPosition.get(id);
                 Vector2 velocity = otherPlayersVelocity.get(id);
-                if (!otherPlayers.containsKey(entry.getKey())) { // found an id in position array that isn't in the original array
+                if (!otherPlayers.containsKey(entry.getKey())) { // found an id in position array that isn't in the original array, so put that new id in
                     Ball otherPlayer = new Ball(position.x, position.y, world);
                     otherPlayer.setBodyLinearVelocity(velocity.x, velocity.y);
                     otherPlayers.put(id, otherPlayer);
                 }
             }
 
+            // adding platforms to a client with an empty platformArray by sending the positions and width of platforms form the server
             if (needsPlatforms) {
                 for (int i = 0; i < platformPositionArray.size; i++) {
                     Vector2 position = platformPositionArray.get(i);
@@ -273,7 +291,7 @@ public class MultiplayerState extends State {
                 }
             }
         }
-        if (toRepositionIndex != -1) {
+        if (toRepositionIndex != -1) { // if it is not -1, then reposition the platform and boulder at the specified index
             platformArray.get(toRepositionIndex).reposition(platformPositionArray.get(toRepositionIndex).x, platformPositionArray.get(toRepositionIndex).y, platformWidthArray.get(toRepositionIndex));
             if (toRepositionBoulder) {
                 boulderArray.get(toRepositionIndex).reposition(boulderPositionArray.get(toRepositionIndex).x, boulderPositionArray.get(toRepositionIndex).y, boulderVelocityArray.get(toRepositionIndex));
@@ -293,6 +311,7 @@ public class MultiplayerState extends State {
             if (giveServerPositionCoordinates) { // if our representative needs to reposition a platform, all other players also reposition
                 if (platform.getPosition().y + platform.getTexture().getHeight() < cam.position.y - cam.viewportHeight / 2) {
                     platform.reposition(platform.getPosition().y + PLATFORM_INTERVALS * NUM_PLATFORMS);
+                    // serializing the repositioned platform's position and width to send to other clients
                     JSONObject repositionedPlatform = new JSONObject();
                     try {
                         repositionedPlatform.put("index", i);
@@ -331,6 +350,7 @@ public class MultiplayerState extends State {
             entry.getValue().update(dt);
         }
 
+        // if startCamera is true, then start scrolling upwards while scaling the scrolling speed with time
         if (startCamera) {
             if (totalTimePassed < 60) {
                 totalTimePassed += dt;
@@ -341,6 +361,7 @@ public class MultiplayerState extends State {
 
         wallBody.setTransform(new Vector2(wallBody.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody.getAngle());
         wallBody2.setTransform(new Vector2(wallBody2.getPosition().x, cam.position.y * PIXELS_TO_METERS), wallBody2.getAngle());
+
         if (player != null && !playerIsDead && cam.position.y - cam.viewportHeight / 2 > player.getPosition().y + player.getTexture().getHeight()) {
             gameover.play(1f);
             playerIsDead = true;
@@ -388,7 +409,7 @@ public class MultiplayerState extends State {
 
     public void connectSocket() {
         try {
-            socket = IO.socket("https://blooming-reef-86477.herokuapp.com"); // https://blooming-reef-86477.herokuapp.com   http://192.168.0.26:5000
+            socket = IO.socket("https://blooming-reef-86477.herokuapp.com");
             socket.connect();
         } catch(Exception e) {
             System.out.println(e);
@@ -415,7 +436,7 @@ public class MultiplayerState extends State {
             }
         }).on("newPlayer", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when another client connects, put their position and velocity into the array
                 JSONObject data = (JSONObject) args[0];
                 try {
                     String id = data.getString("id");
@@ -428,7 +449,7 @@ public class MultiplayerState extends State {
             }
         }).on("playerDisconnected", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when another client disconnects, remove their values from the arrays
                 JSONObject data = (JSONObject) args[0];
                 try {
                     String id = data.getString("id");
@@ -441,7 +462,7 @@ public class MultiplayerState extends State {
             }
         }).on("getPlayers", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when the player connects to the server, get the positions and velocities of other players
                 JSONArray objects = (JSONArray) args[0];
                 try {
                     for (int i = 0; i < objects.length(); i++) {
@@ -457,7 +478,7 @@ public class MultiplayerState extends State {
             }
         }).on("playerUpdate", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when another player sends their position to the server, every other player receives the new position and updates their client accordingly
                 JSONObject data = (JSONObject) args[0];
                 try {
                     String id = data.getString("id");
@@ -484,7 +505,7 @@ public class MultiplayerState extends State {
             }
         }).on("getPlatforms", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when the player connects, get the positions and widths of each platform stored on the server
                 JSONArray objects = (JSONArray) args[0];
                 try {
                     for (int i = 0; i < objects.length(); i++) {
@@ -510,7 +531,7 @@ public class MultiplayerState extends State {
             }
         }).on("repositionPlatform", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // the server sends a repositioned platform's position and width to all clients for them to update
                 JSONObject repositionedPlatform = (JSONObject) args[0];
                 try {
                     int i = repositionedPlatform.getInt("index");
@@ -526,7 +547,7 @@ public class MultiplayerState extends State {
             }
         }).on("getBoulders", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when the player connects, get the positions and velocity of each boulder stored on the server
                 JSONArray objects = (JSONArray) args[0];
                 try {
                     for (int i = 0; i < objects.length(); i++) {
@@ -543,7 +564,7 @@ public class MultiplayerState extends State {
             }
         }).on("repositionBoulder", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // the server sends a repositioned boulder's position and velocity to all clients for them to update
                 JSONObject repositionedBoulder = (JSONObject) args[0];
                 try {
                     int i = repositionedBoulder.getInt("index");
@@ -559,7 +580,7 @@ public class MultiplayerState extends State {
             }
         }).on("resetState", new Emitter.Listener() {
             @Override
-            public void call(Object... args) {
+            public void call(Object... args) { // when all players are dead, bring them back to the menu state, and disconnect them from the server
                 socket.disconnect();
                 resetState = true;
             }
