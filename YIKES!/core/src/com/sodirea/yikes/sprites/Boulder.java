@@ -48,7 +48,7 @@ public class Boulder {
         boulderCircle.setRadius((boulder.getWidth()/2) * PIXELS_TO_METERS);
         boulderFixtureDef = new FixtureDef();
         boulderFixtureDef.shape = boulderCircle;
-        boulderFixtureDef.density = 9999f; // giving it a very high density makes the boulder act like a kinematic body (in that the player's ball adds minimal momentum to the boulder on collisions) that is only affected by gravity
+        boulderFixtureDef.density = 500000f; // giving it a very high density makes the boulder act like a kinematic body (in that the player's ball adds minimal momentum to the boulder on collisions) that is only affected by gravity
         boulderFixtureDef.friction = 0.0f;
         boulderFixture = boulderBody.createFixture(boulderFixtureDef);
         boulderBody.setUserData(this);

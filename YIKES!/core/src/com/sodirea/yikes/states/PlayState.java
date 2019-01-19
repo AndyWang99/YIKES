@@ -315,5 +315,8 @@ public class PlayState extends State {
         groundBox.dispose();
         wallBox.dispose();
         wallBox2.dispose();
+        for (int i = 0; i < boulderArray.size; i++) {
+            boulderArray.get(i).dispose();
+        }
     }
 }
